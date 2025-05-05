@@ -1,0 +1,3 @@
+# src/models/__init__.py
+"""Model training and inference package."""
+# ...existing code...

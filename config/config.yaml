@@ -1,0 +1,8 @@
+# Example configuration file for the project
+model:
+  type: xgboost
+  path: models/xgboost_model.pkl
+data:
+  path: data/Walmart.csv
+logging:
+  level: INFO
