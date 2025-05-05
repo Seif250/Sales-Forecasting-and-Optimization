@@ -16,11 +16,6 @@ if __name__ == "__main__":
     logger = get_logger("train")
     df = load_raw_data(config['data']['path'])
     df_proc = preprocess_sales_data(df)
-    
-    # Export processed data
-    processed_path = str(Path(config['data']['path']).parent / 'processed.csv')
-    df_proc.to_csv(processed_path, index=False)
-    logger.info(f"Processed data exported to {processed_path}")
 
     X = df_proc.drop('Weekly_Sales', axis=1)
     y = df_proc['Weekly_Sales']
@@ -32,9 +27,6 @@ if __name__ == "__main__":
     scaler = StandardScaler()
     X_train_scaled = scaler.fit_transform(X_train)
     X_test_scaled = scaler.transform(X_test)
-    scaler_path = str(Path(config['model']['path']).parent / 'scaler.pkl')
-    joblib.dump(scaler, scaler_path)
-    logger.info(f"Scaler saved to {scaler_path}")
 
     models_dir = Path(config['model']['path']).parent
     models_dir.mkdir(exist_ok=True)
