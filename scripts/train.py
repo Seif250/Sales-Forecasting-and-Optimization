@@ -16,6 +16,7 @@ if __name__ == "__main__":
     logger = get_logger("train")
     df = load_raw_data(config['data']['path'])
     df_proc = preprocess_sales_data(df)
+    
     # Export processed data
     processed_path = str(Path(config['data']['path']).parent / 'processed.csv')
     df_proc.to_csv(processed_path, index=False)

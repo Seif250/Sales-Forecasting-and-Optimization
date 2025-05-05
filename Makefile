@@ -1,8 +1,6 @@
 train:
-	python scripts/train.py
+	python -m scripts.train
 
 serve:
 	uvicorn src.api.main:app --reload
-
-test:
-	pytest tests/
+	
