@@ -6,8 +6,7 @@
 - `models/` — Saved trained models
 - `data/` — Raw data (e.g., Walmart.csv)
 - `notebooks/` — Exploratory notebooks
-- `tests/` — Unit tests
-- `Makefile` — Common tasks (train, serve, test)
+- `Makefile` — Common tasks (EDA, train, serve)
 
 ## Setup
 
