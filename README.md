@@ -11,10 +11,12 @@
 
 ## Setup
 
-1. Install dependencies:
-   ```sh
-   pip install -r requirements.txt
-   ```
+Install dependencies:
+```sh
+pip install -r requirements.txt
+choco install make
+cd src
+```
 
 ## Training
 
@@ -38,20 +40,4 @@ make serve
 To run all unit tests:
 ```sh
 make test
-```
-
-## Example API Usage
-
-POST `/predict`
-```json
-{
-  "data": [
-    {"Store": 1, "Dept": 1, "Date": "2010-02-05", "Weekly_Sales": 24924.50, "IsHoliday": false}
-  ]
-}
-```
-
-Response:
-```json
-{"predictions": [24500.0]}
 ```
