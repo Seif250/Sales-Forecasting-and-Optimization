@@ -1,0 +1,20 @@
+{
+  "name": "sales-forecasting-and-optimization",
+  "version": "1.0.0",
+  "description": "- `src/` — Production code (data, features, models, API, utils)\r - `models/` — Saved trained models\r - `data/` — Raw data (e.g., Walmart.csv)\r - `notebooks/` — Exploratory notebooks\r - `Makefile` — Common tasks (EDA, train, serve)",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Seif250/Sales-Forecasting-and-Optimization.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/Seif250/Sales-Forecasting-and-Optimization/issues"
+  },
+  "homepage": "https://github.com/Seif250/Sales-Forecasting-and-Optimization#readme"
+}

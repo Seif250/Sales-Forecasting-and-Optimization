@@ -1,0 +1,155 @@
+body {
+  margin: 0;
+  font-family: 'Inter', 'Segoe UI', 'Roboto', 'Arial',
+    sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  background-color: #0a0a10;
+  color: #e6e6e6;
+}
+
+code {
+  font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
+    monospace;
+}
+
+.container {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 2rem;
+}
+
+.card {
+  background-color: #121219;
+  color: #e6e6e6;
+  transition: box-shadow 300ms cubic-bezier(0.4, 0, 0.2, 1) 0ms;
+  border-radius: 8px;
+  background-image: linear-gradient(rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.05));
+  overflow: hidden;
+  transition: all 0.3s cubic-bezier(.25,.8,.25,1);
+  height: 100%;
+  padding: 24px;
+  margin-bottom: 24px;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.form-group {
+  margin-bottom: 1rem;
+}
+
+.text-center {
+  text-align: center;
+}
+
+.mb-4 {
+  margin-bottom: 1.5rem;
+}
+
+.prediction-result {
+  font-size: 24px;
+  font-weight: 700;
+  margin-top: 20px;
+  text-align: center;
+  color: #4d69fa;
+}
+
+.chart-container {
+  height: 400px;
+  margin: 30px 0;
+  border-radius: 12px;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+/* Additional styles for consistent color scheme */
+a {
+  color: #4d69fa;
+  text-decoration: none;
+  transition: all 0.2s ease;
+}
+
+a:hover {
+  color: #ff6e86;
+  text-decoration: none;
+}
+
+.btn-primary {
+  background: linear-gradient(90deg, #4d69fa, #7994ff);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  padding: 10px 20px;
+  font-weight: 500;
+  transition: all 0.3s ease;
+}
+
+.btn-primary:hover {
+  background: linear-gradient(90deg, #2541c7, #4d69fa);
+  transform: translateY(-2px);
+  box-shadow: none;
+}
+
+.btn-secondary {
+  background: linear-gradient(90deg, #ff6e86, #ff9bac);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  padding: 10px 20px;
+  font-weight: 500;
+  transition: all 0.3s ease;
+}
+
+.btn-secondary:hover {
+  background: linear-gradient(90deg, #c83e55, #ff6e86);
+  transform: translateY(-2px);
+  box-shadow: none;
+}
+
+/* Glow effects */
+.glow-blue {
+  box-shadow: color;
+}
+
+.glow-pink {
+  box-shadow: color;
+}
+
+.glow-purple {
+  box-shadow: color;
+}
+
+.glow-green {
+  box-shadow: color;
+}
+
+.glow-gold {
+  box-shadow: color;
+}
+
+/* Modern card styles */
+.modern-card {
+  background: #121219;
+  color: #e6e6e6;
+  transition: box-shadow 300ms cubic-bezier(0.4, 0, 0.2, 1) 0ms;
+  border-radius: 8px;
+  background-image: linear-gradient(rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.05));
+  overflow: hidden;
+  position: relative;
+  transition: all 0.3s cubic-bezier(.25,.8,.25,1);
+  height: 100%;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.modern-card:hover {
+  transform: translateY(-5px);
+  box-shadow: color;
+}
+
+/* Gradient text */
+.gradient-text {
+  background: linear-gradient(90deg, #4d69fa, #ff6e86);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  color: transparent;
+}
