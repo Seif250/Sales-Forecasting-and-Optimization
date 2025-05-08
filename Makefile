@@ -9,3 +9,6 @@ back:
 
 front:
 	cd frontend && npm start
+
+install:
+    pip install -r requirements.txt
