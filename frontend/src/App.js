@@ -88,10 +88,21 @@ function App() {
       MuiCard: {
         styleOverrides: {
           root: {
-            boxShadow: '0 1px 3px rgba(0, 0, 0, 0.12), 0 1px 2px rgba(0, 0, 0, 0.08)',
+            background: darkMode ? '#121219' : '#ffffff',
+            backgroundImage: darkMode ? 'linear-gradient(rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.05))' : 'none',
+            boxShadow: darkMode ? 
+              '0 0 15px rgba(77, 105, 250, 0.3), 0 0 30px rgba(77, 105, 250, 0.1)' : 
+              '0 0 15px rgba(77, 105, 250, 0.1), 0 0 30px rgba(77, 105, 250, 0.05)',
+            border: darkMode ? '1px solid rgba(255, 255, 255, 0.05)' : '1px solid rgba(0, 0, 0, 0.05)',
+            borderRadius: '12px',
+            overflow: 'hidden',
             transition: 'all 0.3s cubic-bezier(.25,.8,.25,1)',
+            animation: 'pulsate-blue 3s infinite alternate',
             '&:hover': {
-              boxShadow: '0 5px 15px rgba(0, 0, 0, 0.1), 0 2px 5px rgba(0, 0, 0, 0.1)',
+              transform: 'translateY(-5px)',
+              boxShadow: darkMode ? 
+                '0 0 20px rgba(77, 105, 250, 0.5), 0 0 40px rgba(77, 105, 250, 0.2)' : 
+                '0 0 20px rgba(77, 105, 250, 0.2), 0 0 40px rgba(77, 105, 250, 0.1)',
             },
           },
         },

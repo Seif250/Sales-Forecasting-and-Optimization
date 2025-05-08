@@ -59,9 +59,15 @@ const Header = ({ darkMode, toggleDarkMode }) => {
       position="fixed" 
       elevation={4} 
       sx={{ 
-        background: 'linear-gradient(90deg, #121219, #181825)',
-        boxShadow: '0 4px 20px rgba(0,0,0,0.2)',
-        borderBottom: darkMode ? '1px solid rgba(255,255,255,0.08)' : 'none',
+        background: theme.palette.mode === 'dark' ? 
+          'linear-gradient(90deg, #121219, #181825)' : 
+          'linear-gradient(90deg, #ffffff, #f5f7fa)',
+        boxShadow: theme.palette.mode === 'dark' ? 
+          '0 4px 20px rgba(0,0,0,0.2)' : 
+          '0 4px 20px rgba(0,0,0,0.05)',
+        borderBottom: theme.palette.mode === 'dark' ? 
+          '1px solid rgba(255,255,255,0.08)' : 
+          '1px solid rgba(0,0,0,0.05)',
         mb: 4,
         zIndex: theme.zIndex.drawer + 1
       }}
@@ -103,7 +109,10 @@ const Header = ({ darkMode, toggleDarkMode }) => {
           <>
             <Box sx={{ display: 'flex', alignItems: 'center' }}>
               <IconButton
-                sx={{ ml: 1, color: '#ffffff' }}
+                sx={{ 
+                  ml: 1, 
+                  color: theme.palette.mode === 'dark' ? '#ffffff' : '#172b4d'
+                }}
                 onClick={toggleDarkMode}
                 size="small"
               >
@@ -111,7 +120,10 @@ const Header = ({ darkMode, toggleDarkMode }) => {
               </IconButton>
               <IconButton
                 edge="end"
-                sx={{ ml: 1, color: '#ffffff' }}
+                sx={{ 
+                  ml: 1, 
+                  color: theme.palette.mode === 'dark' ? '#ffffff' : '#172b4d'
+                }}
                 aria-label="menu"
                 onClick={handleMenu}
               >
@@ -160,7 +172,7 @@ const Header = ({ darkMode, toggleDarkMode }) => {
                 to={item.path}
                 startIcon={item.icon}
                 sx={{ 
-                  color: '#ffffff',
+                  color: theme.palette.mode === 'dark' ? '#ffffff' : '#172b4d',
                   mx: 0.5,
                   px: 1.5,
                   fontWeight: isActive(item.path) ? 600 : 400,
@@ -178,7 +190,9 @@ const Header = ({ darkMode, toggleDarkMode }) => {
                     boxShadow: '0 0 10px rgba(77, 105, 250, 0.7)'
                   } : {},
                   '&:hover': {
-                    bgcolor: 'rgba(255, 255, 255, 0.1)'
+                    bgcolor: theme.palette.mode === 'dark' ? 
+                      'rgba(255, 255, 255, 0.1)' : 
+                      'rgba(0, 0, 0, 0.05)'
                   }
                 }}
               >
@@ -190,12 +204,16 @@ const Header = ({ darkMode, toggleDarkMode }) => {
               alignItems: 'center',
               ml: 2,
               pl: 2,
-              borderLeft: '1px solid rgba(255,255,255,0.2)'
+              borderLeft: theme.palette.mode === 'dark' ? 
+                '1px solid rgba(255,255,255,0.2)' : 
+                '1px solid rgba(0,0,0,0.1)'
             }}>
               <IconButton
                 onClick={toggleDarkMode}
                 size="small"
-                sx={{ color: '#ffffff' }}
+                sx={{ 
+                  color: theme.palette.mode === 'dark' ? '#ffffff' : '#172b4d'
+                }}
                 title={darkMode ? "Switch to light mode" : "Switch to dark mode"}
               >
                 {darkMode ? <LightModeIcon fontSize="small" /> : <DarkModeIcon fontSize="small" />}

@@ -68,6 +68,7 @@ const HomePage = () => {
             borderRadius: '50%',
             backgroundColor: theme.palette.accent.blue,
             opacity: 0.7,
+            animation: 'pulsate-blue 3s infinite alternate',
           }} className="glow-blue" />
 
           <Box sx={{ 
@@ -79,6 +80,7 @@ const HomePage = () => {
             borderRadius: '50%',
             backgroundColor: theme.palette.accent.blue,
             opacity: 0.5,
+            animation: 'pulsate-blue 2.5s infinite alternate',
           }} className="glow-blue" />
 
           <Box sx={{ 
@@ -90,6 +92,7 @@ const HomePage = () => {
             borderRadius: '50%',
             backgroundColor: theme.palette.accent.pink,
             opacity: 0.6,
+            animation: 'pulsate-pink 3.2s infinite alternate',
           }} className="glow-pink" />
 
           <Box sx={{ 
@@ -101,6 +104,7 @@ const HomePage = () => {
             borderRadius: '50%',
             backgroundColor: theme.palette.accent.pink,
             opacity: 0.7,
+            animation: 'pulsate-pink 2.8s infinite alternate',
           }} className="glow-pink" />
 
           {/* Dashboard-like graphic */}
@@ -339,11 +343,19 @@ const HomePage = () => {
           borderRadius: 4,
           position: 'relative',
           overflow: 'hidden',
-          boxShadow: '0 10px 40px rgba(0, 0, 0, 0.3)',
-          background: 'linear-gradient(135deg, rgba(18, 18, 25, 0.95), rgba(18, 18, 25, 0.7))',
+          boxShadow: theme.palette.mode === 'dark' ? 
+            '0 10px 40px rgba(0, 0, 0, 0.3)' : 
+            '0 10px 40px rgba(0, 0, 0, 0.1)',
+          background: theme.palette.mode === 'dark' ? 
+            'linear-gradient(135deg, rgba(18, 18, 25, 0.95), rgba(18, 18, 25, 0.7))' : 
+            'linear-gradient(135deg, rgba(245, 247, 250, 0.95), rgba(255, 255, 255, 0.85))',
           backdropFilter: 'blur(10px)',
-          border: '1px solid rgba(255, 255, 255, 0.05)',
+          border: theme.palette.mode === 'dark' ? 
+            '1px solid rgba(255, 255, 255, 0.05)' : 
+            '1px solid rgba(0, 0, 0, 0.05)',
+          animation: 'pulsate-pink 3s infinite alternate',
         }}
+        className="glow-pink"
       >
         {/* Background elements */}
         <Box sx={{ 
@@ -354,7 +366,8 @@ const HomePage = () => {
           height: 300,
           borderRadius: '50%',
           background: 'radial-gradient(circle, rgba(77, 105, 250, 0.2) 0%, rgba(77, 105, 250, 0) 70%)',
-        }} />
+        }} 
+        className="glow-blue" />
         
         <Box sx={{ 
           position: 'absolute',
@@ -364,7 +377,8 @@ const HomePage = () => {
           height: 200,
           borderRadius: '50%',
           background: 'radial-gradient(circle, rgba(255, 110, 134, 0.15) 0%, rgba(255, 110, 134, 0) 70%)',
-        }} />
+        }} 
+        className="glow-pink" />
 
         <Typography 
           variant="h4" 
@@ -373,7 +387,9 @@ const HomePage = () => {
           sx={{ 
             mb: 3,
             fontWeight: 700,
-            background: 'linear-gradient(90deg, #ffffff, #a0a0a0)',
+            background: theme.palette.mode === 'dark' ? 
+              'linear-gradient(90deg, #ffffff, #a0a0a0)' : 
+              'linear-gradient(90deg, #172b4d, #2c3e50)',
             backgroundClip: 'text',
             WebkitBackgroundClip: 'text',
             color: 'transparent',

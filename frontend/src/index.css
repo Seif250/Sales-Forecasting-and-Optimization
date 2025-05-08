@@ -105,25 +105,55 @@ a:hover {
   box-shadow: none;
 }
 
-/* Glow effects */
 .glow-blue {
-  box-shadow: color;
+  box-shadow: 0 0 15px rgba(77, 105, 250, 0.7), 0 0 30px rgba(77, 105, 250, 0.4);
+  animation: pulsate-blue 3s infinite alternate;
 }
 
 .glow-pink {
-  box-shadow: color;
+  box-shadow: 0 0 15px rgba(255, 110, 134, 0.7), 0 0 30px rgba(255, 110, 134, 0.4);
+  animation: pulsate-pink 3s infinite alternate;
 }
 
 .glow-purple {
-  box-shadow: color;
+  box-shadow: 0 0 15px rgba(156, 110, 255, 0.7), 0 0 30px rgba(156, 110, 255, 0.4);
+  animation: pulsate-purple 3s infinite alternate;
 }
 
 .glow-green {
-  box-shadow: color;
+  box-shadow: 0 0 15px rgba(54, 215, 183, 0.7), 0 0 30px rgba(54, 215, 183, 0.4);
+  animation: pulsate-green 3s infinite alternate;
 }
 
 .glow-gold {
-  box-shadow: color;
+  box-shadow: 0 0 15px rgba(255, 203, 69, 0.7), 0 0 30px rgba(255, 203, 69, 0.4);
+  animation: pulsate-gold 3s infinite alternate;
+}
+
+/* Pulsate animations for each color */
+@keyframes pulsate-blue {
+  0% { box-shadow: 0 0 15px rgba(77, 105, 250, 0.7), 0 0 30px rgba(77, 105, 250, 0.4); }
+  100% { box-shadow: 0 0 20px rgba(77, 105, 250, 0.9), 0 0 40px rgba(77, 105, 250, 0.6); }
+}
+
+@keyframes pulsate-pink {
+  0% { box-shadow: 0 0 15px rgba(255, 110, 134, 0.7), 0 0 30px rgba(255, 110, 134, 0.4); }
+  100% { box-shadow: 0 0 20px rgba(255, 110, 134, 0.9), 0 0 40px rgba(255, 110, 134, 0.6); }
+}
+
+@keyframes pulsate-purple {
+  0% { box-shadow: 0 0 15px rgba(156, 110, 255, 0.7), 0 0 30px rgba(156, 110, 255, 0.4); }
+  100% { box-shadow: 0 0 20px rgba(156, 110, 255, 0.9), 0 0 40px rgba(156, 110, 255, 0.6); }
+}
+
+@keyframes pulsate-green {
+  0% { box-shadow: 0 0 15px rgba(54, 215, 183, 0.7), 0 0 30px rgba(54, 215, 183, 0.4); }
+  100% { box-shadow: 0 0 20px rgba(54, 215, 183, 0.9), 0 0 40px rgba(54, 215, 183, 0.6); }
+}
+
+@keyframes pulsate-gold {
+  0% { box-shadow: 0 0 15px rgba(255, 203, 69, 0.7), 0 0 30px rgba(255, 203, 69, 0.4); }
+  100% { box-shadow: 0 0 20px rgba(255, 203, 69, 0.9), 0 0 40px rgba(255, 203, 69, 0.6); }
 }
 
 /* Modern card styles */
