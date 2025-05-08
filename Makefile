@@ -1,6 +1,6 @@
 eda:
 	python -m scripts.eda
-	
+
 train:
 	python -m scripts.train
 
@@ -11,4 +11,4 @@ front:
 	cd frontend && npm start
 
 install:
-    pip install -r requirements.txt
+	pip install -r requirements.txt

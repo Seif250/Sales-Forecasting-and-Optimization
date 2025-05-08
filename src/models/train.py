@@ -13,40 +13,18 @@ def train_linear_regression(X: pd.DataFrame, y: pd.Series, model_path: str = Non
     model = LinearRegression()
     model.fit(X, y)
     if model_path is not None:
-        # Save the model with feature names
-        model_data = {
-            'model': model,
-            'feature_names': X.columns.tolist()
-        }
-        joblib.dump(model_data, model_path)
+        joblib.dump(model, model_path)
     return model
 
 def train_xgboost(X: pd.DataFrame, y: pd.Series, model_path: str = None):
-    model = XGBRegressor(objective='reg:squarederror', n_estimators=100, random_state=42)
+    model = XGBRegressor(objective='reg:squarederror', n_estimators=100)
     model.fit(X, y)
     if model_path is not None:
-        # Save the model with feature names
-        model_data = {
-            'model': model,
-            'feature_names': X.columns.tolist()
-        }
-        joblib.dump(model_data, model_path)
+        joblib.dump(model, model_path)
     return model
 
 def load_model(model_path: str):
-    try:
-        # Try loading as new format (dict with model and feature names)
-        model_data = joblib.load(model_path)
-        if isinstance(model_data, dict) and 'model' in model_data:
-            logger.info(f"Loaded model with feature names: {len(model_data['feature_names'])} features")
-            return model_data
-        else:
-            # Legacy format - just the model
-            logger.info("Loaded legacy model format")
-            return {'model': model_data, 'feature_names': None}
-    except Exception as e:
-        logger.error(f"Error loading model: {str(e)}")
-        raise
+    return joblib.load(model_path)
 
 def predict(model_data, X: pd.DataFrame):
     """

@@ -21,10 +21,11 @@ if __name__ == "__main__":
     y = df_proc['Weekly_Sales']
 
     # Train/test split
-    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=1)
 
     # Data scaling
     scaler = StandardScaler()
+
     X_train_scaled = scaler.fit_transform(X_train)
     X_test_scaled = scaler.transform(X_test)
 
@@ -43,8 +44,8 @@ if __name__ == "__main__":
         for split, Xs, ys in [
             ("Train", X_train_scaled, y_train),
             ("Test", X_test_scaled, y_test)
-        ]:
+        ]: 
             preds = model.predict(Xs)
             rmse = np.sqrt(mean_squared_error(ys, preds))
             r2 = r2_score(ys, preds)
-            logger.info(f"{model_name} {split} RMSE: {rmse:.2f} | R2: {r2:.3f}")
+            logger.info(f"{model_name} {split} RMSE: {rmse:.2f}")

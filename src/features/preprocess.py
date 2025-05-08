@@ -1,18 +1,12 @@
 import pandas as pd
 import numpy as np
+import category_encoders as ce
 import logging
 
 logger = logging.getLogger("preprocessor")
 
 def remove_outliers_iqr(df: pd.DataFrame, columns=None) -> pd.DataFrame:
     """Remove outliers from specified columns using the IQR method."""
-    if columns is None:
-        columns = df.select_dtypes(include=[np.number]).columns.tolist()
-    
-    if not columns:
-        logger.warning("No numeric columns for outlier removal")
-        return df
-    
     df_clean = df.copy()
     
     for col in columns:
@@ -91,23 +85,21 @@ def preprocess_sales_data(df: pd.DataFrame) -> pd.DataFrame:
     
     # Convert categorical features
     cf = ['Store', 'month', 'weekday', 'year', 'Holiday_Flag']
+
     for col in cf:
         if col in df.columns:
-            logger.info(f"Converting {col} to string for one-hot encoding")
+            logger.info(f"Converting {col} to string for Binary encoding")
             df[col] = df[col].astype(str)
     
-    # One-hot encode categorical features
-    logger.info("Performing one-hot encoding")
-    categorical_cols = [c for c in cf if c in df.columns]
-    if categorical_cols:
-        df = pd.get_dummies(df, columns=categorical_cols, drop_first=False)
-        
-        # Always ensure all weekday_X columns (0-6) exist
-        all_weekdays = [f'weekday_{i}' for i in range(7)]
-        for weekday_col in all_weekdays:
-            if weekday_col not in df.columns:
-                logger.info(f"Adding missing {weekday_col} column")
-                df[weekday_col] = 0
+    # Binary encoding categorical features
+    logger.info("Performing Binary encoding")
+    nf = ['Weekly_Sales', 'Temperature', 'Fuel_Price', 'CPI', 'Unemployment']
+
+    df3 = df.copy(deep=True)
+    encoder = ce.BinaryEncoder(cols=cf, drop_invariant=False)
+    df_encoded = encoder.fit_transform(df3[cf])
+    df3 = pd.concat([df3[nf], df_encoded], axis=1)
+    df = df3.copy(deep=True)
     
     # Handle duplicates and missing values
     logger.info("Removing duplicates and handling missing values")
@@ -117,7 +109,7 @@ def preprocess_sales_data(df: pd.DataFrame) -> pd.DataFrame:
     # Remove outliers from numerical columns
     logger.info("Removing outliers")
     try:
-        numerical_cols = [col for col in ['Weekly_Sales', 'Temperature', 'Fuel_Price', 'CPI', 'Unemployment'] 
+        numerical_cols = [col for col in nf
                          if col in df.columns]
         if numerical_cols:
             df = remove_outliers_iqr(df, columns=numerical_cols)
@@ -125,7 +117,7 @@ def preprocess_sales_data(df: pd.DataFrame) -> pd.DataFrame:
             logger.warning("No numerical columns for outlier removal")
     except Exception as e:
         logger.error(f"Error in outlier removal: {str(e)}")
-    
+        
     logger.info(f"Preprocessing complete, final shape: {df.shape}")
     logger.info(f"Output columns: {df.columns.tolist()}")
     
