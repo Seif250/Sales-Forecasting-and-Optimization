@@ -2,6 +2,7 @@ import pandas as pd
 import numpy as np
 import category_encoders as ce
 import logging
+from sklearn.preprocessing import StandardScaler
 
 logger = logging.getLogger("preprocessor")
 
@@ -122,3 +123,23 @@ def preprocess_sales_data(df: pd.DataFrame) -> pd.DataFrame:
     logger.info(f"Output columns: {df.columns.tolist()}")
     
     return df
+
+def scale_features(df: pd.DataFrame) -> tuple:
+    logger.info("Scaling numerical features")
+    
+    # Create a copy to avoid modifying the original
+    df_scaled = df.copy()
+    nf = df.select_dtypes(include=np.number).columns.tolist()
+    
+    try:
+        # Initialize scaler
+        scaler = StandardScaler()
+        
+        # Fit and transform the specified columns
+        df_scaled[nf] = scaler.fit_transform(df[nf])
+        logger.info(f"Successfully scaled {len(nf)} features")
+        
+        return df_scaled, scaler
+    except Exception as e:
+        logger.error(f"Error in feature scaling: {str(e)}")
+        return df, None
