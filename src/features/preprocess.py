@@ -127,28 +127,72 @@ def preprocess_sales_data(df: pd.DataFrame) -> pd.DataFrame:
     
     return df
 
-def scale_features(df: pd.DataFrame) -> tuple[pd.DataFrame, StandardScaler]:
+def scale_features(df: pd.DataFrame, scaler: StandardScaler = None) -> tuple[pd.DataFrame, StandardScaler]:
+    """
+    Scale numerical features using StandardScaler.
+    If a scaler is provided, it will use transform() only.
+    If no scaler is provided, it will fit_transform() and return the fitted scaler.
+    
+    Args:
+        df: DataFrame with features to scale
+        scaler: Optional pre-fitted StandardScaler
+        
+    Returns:
+        (scaled_df, scaler): Tuple of scaled DataFrame and the scaler used
+    """
     logger.info("Scaling numerical features")
     
     # Create a copy to avoid modifying the original
     df_scaled = df.copy()
-    # Select only numerical columns for scaling
-    nf = df_scaled.select_dtypes(include=np.number).columns.tolist()
     
-    scaler = StandardScaler() # Initialize scaler outside the try-except block
+    # Handle the case of Weekly_Sales special - exclude it from scaling if present
+    # This is to maintain consistency with how the model was trained
+    # where Weekly_Sales was the target and not included in the feature scaling
+    has_weekly_sales = 'Weekly_Sales' in df_scaled.columns
+    if has_weekly_sales:
+        logger.info("'Weekly_Sales' found in input data for scaling - will be preserved unscaled")
+        weekly_sales_values = df_scaled['Weekly_Sales'].copy()
+        df_scaled_without_target = df_scaled.drop('Weekly_Sales', axis=1)
+    else:
+        df_scaled_without_target = df_scaled
+    
+    # Select only numerical columns for scaling
+    nf = df_scaled_without_target.select_dtypes(include=np.number).columns.tolist()
+    
+    if scaler is None:
+        # Training mode: fit and transform
+        scaler = StandardScaler()
+        fit_new_scaler = True
+        logger.info("No scaler provided, creating and fitting a new one")
+    else:
+        # Prediction mode: transform only
+        fit_new_scaler = False
+        logger.info("Using provided pre-fitted scaler for transformation only")
 
     if not nf:
-        logger.warning("No numerical features found to scale. Returning original DataFrame and an unfitted scaler.")
-        return df_scaled, scaler # Return the original DataFrame and the unfitted scaler
+        logger.warning("No numerical features found to scale. Returning original DataFrame and scaler.")
+        return df_scaled, scaler # Return the original DataFrame and the scaler
 
     try:
-        # Fit and transform the specified columns
-        df_scaled[nf] = scaler.fit_transform(df_scaled[nf])
-        logger.info(f"Successfully scaled {len(nf)} features: {nf}")
+        if fit_new_scaler:
+            # Fit and transform the specified columns (training mode)
+            df_scaled_without_target[nf] = scaler.fit_transform(df_scaled_without_target[nf])
+            logger.info(f"Successfully fit and transformed {len(nf)} features with new scaler: {nf}")
+        else:
+            # Transform only with existing scaler (prediction mode)
+            df_scaled_without_target[nf] = scaler.transform(df_scaled_without_target[nf])
+            logger.info(f"Successfully transformed {len(nf)} features with pre-fitted scaler: {nf}")
         
-        return df_scaled, scaler # Return the scaled DataFrame and the fitted scaler
+        # If Weekly_Sales was in the original dataframe, add it back unscaled
+        if has_weekly_sales:
+            df_result = df_scaled_without_target.copy()
+            df_result['Weekly_Sales'] = weekly_sales_values
+            logger.info("Added back 'Weekly_Sales' column unscaled")
+            return df_result, scaler
+        else:
+            return df_scaled_without_target, scaler
     except Exception as e:
         logger.error(f"Error in feature scaling: {str(e)}")
-        logger.warning("Returning original DataFrame and a new unfitted scaler due to error during scaling.")
-        # Return original dataframe and a new, unfitted scaler in case of error
-        return df, StandardScaler()
+        logger.warning("Returning original DataFrame due to error during scaling.")
+        # Return original dataframe and the scaler in case of error
+        return df, scaler

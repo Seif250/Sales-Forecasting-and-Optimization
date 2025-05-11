@@ -30,16 +30,42 @@ def train_xgboost(X: pd.DataFrame, y: pd.Series, model_path: str = None, feature
 def load_model(model_path: str):
     return joblib.load(model_path)
 
-def predict(model_data: dict, X: pd.DataFrame) -> np.ndarray:
+def predict(model_data: dict, X) -> np.ndarray:
     """
     Make predictions using the model and preprocessed data.
-    Aligns columns of X based on feature_names stored in model_data if available.
+    Accepts either a pandas DataFrame or a numpy array of features.
+    If X is a DataFrame, aligns columns based on feature_names stored in model_data if available.
+    If X is a numpy array, assumes it's already properly aligned with model features.
+    
+    Args:
+        model_data: Dictionary containing 'model' and optionally 'feature_names'
+        X: Features as either pandas DataFrame or numpy array
+        
+    Returns:
+        numpy array of predictions
     """
     model = model_data.get('model')
     if model is None:
         logger.error("Model object not found in model_data.")
         raise ValueError("Model not loaded properly.")
 
+    # Check if X is a numpy array
+    if isinstance(X, np.ndarray):
+        logger.debug(f"Input for prediction is a numpy array with shape {X.shape}")
+        
+        # For numpy arrays, we assume columns are already aligned to model's expectations
+        if X.size == 0:  # Handle empty arrays
+            logger.info("Input numpy array for prediction is empty.")
+            return np.array([])
+            
+        try:
+            predictions_output = model.predict(X)
+            return predictions_output
+        except Exception as e:
+            logger.error(f"Error during model.predict call with numpy array: {e}", exc_info=True)
+            raise
+    
+    # If X is a DataFrame, proceed with column alignment
     model_feature_names = model_data.get('feature_names')
     
     logger.debug(f"DataFrame columns before alignment for prediction: {X.columns.tolist()}")

@@ -18,25 +18,29 @@ if __name__ == "__main__":
     df_proc = preprocess_sales_data(df)
 
     X = df_proc.drop('Weekly_Sales', axis=1)
-    y = df_proc['Weekly_Sales']
-
-    # Get feature names after preprocessing and before scaling for saving with the model
+    y = df_proc['Weekly_Sales']    # Get feature names after preprocessing and before scaling for saving with the model
     feature_names = X.columns.tolist()
 
     # Train/test split
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=1)
-
-    # Data scaling
+    
+    # Data scaling - Note: X already has Weekly_Sales removed, so it won't be scaled
     X_train_df = pd.DataFrame(X_train, columns=X.columns)
     X_train_scaled_df, scaler = scale_features(X_train_df)
     X_train_scaled = X_train_scaled_df.values
     
-    # Apply same scaling to test data
+    # Apply same scaling to test data using the fitted scaler
     X_test_df = pd.DataFrame(X_test, columns=X.columns)
-    X_test_scaled = scaler.transform(X_test_df)
+    X_test_scaled_df, _ = scale_features(X_test_df, scaler)  # Use same scaler, ignore returned one
+    X_test_scaled = X_test_scaled_df.values
 
     models_dir = Path(config['model']['path']).parent
     models_dir.mkdir(exist_ok=True)
+    
+    # Save the scaler for prediction-time use
+    scaler_path = models_dir / 'standard_scaler.pkl'
+    joblib.dump(scaler, scaler_path)
+    logger.info(f"StandardScaler saved to {scaler_path}")
 
     logger.info("Training Linear Regression...")
     train_linear_regression(X_train_scaled, y_train, str(models_dir / 'linear_regression_model.pkl'), feature_names=feature_names)

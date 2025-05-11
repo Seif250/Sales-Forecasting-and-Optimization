@@ -9,6 +9,7 @@ import joblib # Added for loading scikit-learn models
 import traceback # Added for detailed error logging
 import numpy as np
 from typing import Optional
+from sklearn.preprocessing import StandardScaler
 
 # Fix import paths when running from src directory
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -40,14 +41,37 @@ logger = get_logger("api")
 # Define paths for both models
 LINEAR_MODEL_PATH = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'models', 'linear_regression_model.pkl')
 XGBOOST_MODEL_PATH = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'models', 'xgboost_model.pkl')
+SCALER_PATH = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'models', 'standard_scaler.pkl')
 
 available_models = {}
+loaded_scaler = None
 
 @app.on_event("startup")
 def load_trained_models():
-    global available_models
-    logger.info("Attempting to load trained models...")
-    model_paths = {"linear": LINEAR_MODEL_PATH, "xgboost": XGBOOST_MODEL_PATH}
+    global available_models, loaded_scaler
+    logger.info("Attempting to load trained models and scaler...")
+    model_paths = {"linear": LINEAR_MODEL_PATH, "xgboost": XGBOOST_MODEL_PATH}    # Try to load the saved scaler
+    try:
+        if os.path.exists(SCALER_PATH):
+            loaded_scaler = joblib.load(SCALER_PATH)
+            logger.info(f"StandardScaler loaded from {SCALER_PATH}")
+            
+            # Validate scaler by checking its parameters
+            if hasattr(loaded_scaler, 'n_features_in_'):
+                logger.info(f"Loaded scaler was trained on {loaded_scaler.n_features_in_} features")
+                if hasattr(loaded_scaler, 'feature_names_in_'):
+                    logger.info(f"Scaler feature names: {loaded_scaler.feature_names_in_.tolist()}")
+                    # Check if Weekly_Sales is in the scaler's features - it shouldn't be
+                    if 'Weekly_Sales' in loaded_scaler.feature_names_in_:
+                        logger.warning("Warning: Scaler includes 'Weekly_Sales' which should be excluded from scaling")
+            else:
+                logger.warning("Loaded scaler doesn't have n_features_in_ attribute, might be an older version")
+        else:
+            logger.warning(f"Scaler file not found at {SCALER_PATH}. Using fit_transform will be required for predictions.")
+            loaded_scaler = None
+    except Exception as e:
+        logger.error(f"Failed to load scaler from {SCALER_PATH}: {e}", exc_info=True)
+        loaded_scaler = None
 
     for model_name, model_path in model_paths.items():
         try:
@@ -109,12 +133,46 @@ async def _perform_prediction(input_df: pd.DataFrame, model_name: str) -> Predic
 
     try:
         logger.info(f"Original DataFrame for preprocessing (first 5 rows):\n{input_df.head()}")
-        
-        # Preprocess the data - ensure preprocess_sales_data is robust
+          # Preprocess the data - ensure preprocess_sales_data is robust
         df_proc = preprocess_sales_data(input_df.copy())  # Pass a copy
-        df_proc = scale_features(df_proc) # Scale features
-        logger.info(f"Preprocessed DataFrame columns after preprocess_sales_data and scaling: {df_proc.columns.tolist()}")
-        logger.info(f"Preprocessed DataFrame for prediction (first 5 rows):\n{df_proc.head()}")
+        logger.info(f"Preprocessed DataFrame columns after preprocess_sales_data: {df_proc.columns.tolist()}")
+        
+        # Check if Weekly_Sales exists in the input and handle appropriately
+        has_weekly_sales = 'Weekly_Sales' in df_proc.columns
+        if has_weekly_sales:
+            logger.info("Input data contains 'Weekly_Sales' column - this will be preserved unscaled")
+            # We'll preserve it for response but not use it for prediction
+            weekly_sales_original = df_proc['Weekly_Sales'].copy()
+        
+        # Scale features using the loaded scaler or create a new one if none is loaded
+        df_proc_scaled = df_proc.copy()
+        
+        if loaded_scaler is not None:
+            # Use the pre-trained scaler from training (transform only, not fit_transform)
+            try:
+                # Use scale_features with the loaded scaler for consistency
+                # The scale_features function will handle Weekly_Sales properly now
+                df_proc_scaled, _ = scale_features(df_proc, loaded_scaler)
+                logger.info("Successfully scaled features using the pre-trained scaler")
+            except Exception as e:
+                logger.error(f"Error using pre-trained scaler: {str(e)}")
+                logger.warning("Falling back to unscaled features due to scaler error")
+                df_proc_scaled = df_proc.copy()
+        else:
+            # If no scaler was loaded, we have to fit a new one (not ideal for production)
+            logger.warning("No pre-trained scaler was loaded. Creating and fitting a new scaler (not recommended for production).")
+            try:
+                df_proc_scaled, temp_scaler = scale_features(df_proc)
+                logger.info("Successfully created and fit a new scaler as fallback")
+            except Exception as e:
+                logger.error(f"Error creating new scaler: {str(e)}")
+                # In case of error, use unscaled features
+                df_proc_scaled = df_proc.copy()
+        
+        df_proc_values = df_proc_scaled.values  # Convert to numpy array like in training
+        
+        logger.info(f"Preprocessed DataFrame columns after preprocess_sales_data and scaling: {df_proc_scaled.columns.tolist()}")
+        logger.info(f"Preprocessed DataFrame for prediction (first 5 rows):\n{df_proc_scaled.head()}")
 
         if df_proc.empty and not input_df.empty:
             logger.warning("Preprocessing resulted in an empty DataFrame from non-empty input.")
@@ -123,7 +181,11 @@ async def _perform_prediction(input_df: pd.DataFrame, model_name: str) -> Predic
              return PredictResponse(predictions=[], success=True, message="No data provided, no predictions made.")
 
         expected_features = selected_model_data.get('feature_names')
+        
+        # Keep track of both unscaled and scaled versions
         df_aligned = df_proc
+        df_aligned_scaled = df_proc_scaled
+        df_aligned_values = df_proc_values  # Default to use all scaled features as values
 
         if expected_features:
             logger.info(f"Model '{model_name}' expects features: {expected_features}")
@@ -139,9 +201,11 @@ async def _perform_prediction(input_df: pd.DataFrame, model_name: str) -> Predic
             if extra_features:
                 logger.warning(f"Extra features in preprocessed data not used by model '{model_name}': {extra_features}. These will be dropped.")
             
-            # Align df_proc to expected_features
+            # Align both dataframes to expected_features
             try:
                 df_aligned = df_proc[expected_features]
+                df_aligned_scaled = df_proc_scaled[expected_features]  # Keep the scaled version aligned too
+                df_aligned_values = df_aligned_scaled.values  # Convert to numpy array for prediction
                 logger.info(f"DataFrame columns aligned to expected features for model '{model_name}'. Aligned columns: {df_aligned.columns.tolist()}")
             except KeyError as e:
                 logger.error(f"KeyError during feature alignment for model '{model_name}': {e}. This should have been caught by missing_features check.")
@@ -150,10 +214,8 @@ async def _perform_prediction(input_df: pd.DataFrame, model_name: str) -> Predic
             logger.warning(f"No explicit feature names found for model '{model_name}'. "
                            f"Predicting based on the column order from preprocess_sales_data. "
                            f"Ensure preprocess_sales_data output ({df_proc.columns.tolist()}) "
-                           f"matches the training data structure for this model implicitly.")
-
-        # Make predictions using the function from models.train
-        preds = predict(selected_model_data, df_aligned) # predict is from models.train
+                           f"matches the training data structure for this model implicitly.")        # Make predictions using the function from models.train - using the NumPy array values
+        preds = predict(selected_model_data, df_aligned_values)  # Using the numpy array values like in training
         
         predictions_list = preds.tolist() if hasattr(preds, 'tolist') else list(preds)
 
@@ -369,12 +431,21 @@ async def visualize_data(file: UploadFile = File(...)):
                 else:
                     logger.warning("'Date' column exists but could not be converted to datetime for all values for visualization.")
             except Exception as e:
-                logger.warning(f"Could not convert 'Date' column to datetime for visualization: {e}. Time-based aggregations might be affected.")
-        
-        # Preprocess a copy of the data for statistics
-        df_for_stats = df.copy()
+                logger.warning(f"Could not convert 'Date' column to datetime for visualization: {e}. Time-based aggregations might be affected.")          # Preprocess a copy of the data for statistics        df_for_stats = df.copy()
         df_proc = preprocess_sales_data(df_for_stats) # preprocess_sales_data handles its own date parsing if 'Date' is present
-        df_proc = scale_features(df_proc) # Scale features
+        
+        # Scale features with the loaded scaler if available, otherwise fit a new one
+        if loaded_scaler is not None:
+            try:
+                df_proc, _ = scale_features(df_proc, loaded_scaler) # Use the loaded scaler (transform only)
+                logger.info("Statistics visualization: Successfully scaled features using pre-trained scaler")
+            except Exception as e:
+                logger.error(f"Statistics visualization: Error using pre-trained scaler: {str(e)}")
+                # In case of error with loaded scaler, fit a new one
+                df_proc, scaler = scale_features(df_proc) # Fallback to creating a new scaler
+        else:
+            # No scaler loaded - fit a new one for this data
+            df_proc, scaler = scale_features(df_proc) # Scale features and get the scaler
         logger.info(f"Preprocessed DataFrame for stats (first 5 rows):\n{df_proc.head() if not df_proc.empty else 'Empty'}")
         logger.info(f"Preprocessed DataFrame columns for stats: {df_proc.columns.tolist() if not df_proc.empty else 'Empty'}")
 
