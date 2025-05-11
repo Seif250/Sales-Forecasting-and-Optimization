@@ -5,18 +5,19 @@ const API_URL = 'http://localhost:8000';
 export const predictSales = async (formData) => {
   try {
     // Try to get prediction from the backend
-    const response = await axios.post(`${API_URL}/predict`, {
+    const response = await axios.post(`${API_URL}/api/predict_json`, { // Changed from /predict to /api/predict_json
       data: [formData],
       model: formData.model
     });
     
     // Check if the response contains valid prediction data
-    if (response.data && response.data.predictions && response.data.predictions.length > 0) {
+    if (response.data && response.data.success && response.data.predictions && response.data.predictions.length > 0) {
       console.log('Received prediction from API:', response.data.predictions[0]);
       return response.data.predictions[0];
     } else {
-      console.warn('API returned empty or invalid prediction data');
-      throw new Error('Invalid prediction data');
+      const message = response.data?.message || 'API returned empty or invalid prediction data';
+      console.warn(message);
+      throw new Error(message);
     }
   } catch (error) {
     console.error('Error making prediction:', error);
@@ -42,14 +43,19 @@ export const predictSales = async (formData) => {
 };
 
 // This would be used if we had an endpoint for fetching visualizations data
-export const getVisualizationData = async (vizType) => {
+export const getVisualizationData = async (file) => { // Changed parameter
   try {
-    // For now, we'll simulate this with mock data in the components
-    // In a real app, this would call backend endpoints
-    const response = await axios.get(`${API_URL}/visualize/${vizType}`);
+    const formData = new FormData();
+    formData.append('file', file); // Key 'file' must match FastAPI parameter name
+
+    const response = await axios.post(`${API_URL}/api/visualize_data`, formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
     return response.data;
   } catch (error) {
-    console.error(`Error fetching ${vizType} visualization:`, error);
+    console.error(`Error fetching visualization data:`, error);
     throw error;
   }
-}; 
+};

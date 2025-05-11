@@ -93,7 +93,7 @@ const DataAnalyzer = () => {
     
     try {
       // Step 1: Process and visualize data
-      const visualizeResponse = await fetch(`${API_URL}/visualize_data`, {
+      const visualizeResponse = await fetch(`${API_URL}/api/visualize_data`, { // Changed to /api/visualize_data
         method: 'POST',
         body: formData,
       });
@@ -110,9 +110,9 @@ const DataAnalyzer = () => {
       // Linear Regression
       const linearFormData = new FormData();
       linearFormData.append('file', file);
-      linearFormData.append('model', 'linear_regression');
+      linearFormData.append('model_name', 'linear'); // Ensure key is 'model_name' as expected by FastAPI Form
       
-      const linearResponse = await fetch(`${API_URL}/predict_from_csv`, {
+      const linearResponse = await fetch(`${API_URL}/api/predict_csv`, { // Changed to /api/predict_csv
         method: 'POST',
         body: linearFormData,
       });
@@ -126,9 +126,9 @@ const DataAnalyzer = () => {
       // XGBoost
       const xgboostFormData = new FormData();
       xgboostFormData.append('file', file);
-      xgboostFormData.append('model', 'xgboost');
+      xgboostFormData.append('model_name', 'xgboost'); // Ensure key is 'model_name' as expected by FastAPI Form
       
-      const xgboostResponse = await fetch(`${API_URL}/predict_from_csv`, {
+      const xgboostResponse = await fetch(`${API_URL}/api/predict_csv`, { // Changed to /api/predict_csv
         method: 'POST',
         body: xgboostFormData,
       });
@@ -881,4 +881,4 @@ const DataAnalyzer = () => {
   );
 };
 
-export default DataAnalyzer; 
+export default DataAnalyzer;

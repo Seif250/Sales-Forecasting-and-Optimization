@@ -4,6 +4,7 @@ from enum import Enum
 
 class PredictRequest(BaseModel):
     data: List[Dict[str, Any]] = Field(..., description="List of dictionaries representing sales data rows")
+    model: str = Field(default="xgboost", description="Name of the model to use (e.g., 'linear', 'xgboost')")
 
 class PredictResponse(BaseModel):
     predictions: List[float] = Field(..., description="List of predicted sales values")

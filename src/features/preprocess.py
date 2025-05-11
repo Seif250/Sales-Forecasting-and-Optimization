@@ -34,37 +34,40 @@ def preprocess_sales_data(df: pd.DataFrame) -> pd.DataFrame:
     
     # Handle date conversion
     if 'Date' in df.columns:
-        logger.info("Converting Date column")
+        logger.info("Converting Date column for preprocessing")
         try:
-            df['Date'] = pd.to_datetime(df['Date'], format='%d-%m-%Y', errors='coerce')
+            original_dates = df['Date'].copy() # Keep original for fallback
+            try:
+                df['Date'] = pd.to_datetime(df['Date'], format='%d-%m-%Y', errors='raise')
+                logger.info("Parsed 'Date' column with format '%d-%m-%Y' for preprocessing.")
+            except ValueError:
+                logger.warning("Failed to parse 'Date' with format '%d-%m-%Y' for preprocessing, trying to infer format.")
+                df['Date'] = pd.to_datetime(original_dates, infer_datetime_format=True, errors='coerce')
             
-            # Check for NaN values after conversion
+            # Fallback if a large portion became NaT with infer_datetime_format
+            if df['Date'].notna().any() and (df['Date'].isna().sum() > len(df) / 2):
+                logger.warning("High number of NaNs after inferring date format for preprocessing. Trying with dayfirst=True as a fallback.")
+                df['Date'] = pd.to_datetime(original_dates, dayfirst=True, errors='coerce')
+
             if df['Date'].isna().any():
-                logger.warning(f"Some dates could not be parsed: {df[df['Date'].isna()]['Date'].head()}")
-                
+                logger.warning("Some dates could not be parsed to datetime for preprocessing and resulted in NaT even after fallbacks. Ensure all dates are in a recognizable format. These will affect date-derived features.")
+            
+            # Extract date features. If 'Date' column became all NaT, these will be NaN.
             df['weekday'] = df['Date'].dt.weekday
             df['month'] = df['Date'].dt.month
             df['year'] = df['Date'].dt.year
-            df.drop(['Date'], axis=1, inplace=True)
-            logger.info("Date conversion successful")
+            df.drop(['Date'], axis=1, inplace=True) # Drop the original 'Date' column after extracting features
+            logger.info("Date conversion and feature extraction for preprocessing successful.")
         except Exception as e:
-            logger.error(f"Error in date conversion: {str(e)}")
-            # If date conversion fails, add default columns to ensure model compatibility
-            if 'weekday' not in df.columns:
-                df['weekday'] = 0
-            if 'month' not in df.columns:
-                df['month'] = 1
-            if 'year' not in df.columns:
-                df['year'] = 2023
+            logger.error(f"Error in date conversion during preprocessing: {str(e)}")
+            # Fallback: if date processing fails, ensure columns exist to prevent downstream errors
+            if 'weekday' not in df.columns: df['weekday'] = 0
+            if 'month' not in df.columns: df['month'] = 1
+            if 'year' not in df.columns: df['year'] = 2023 # Or some other default
+            if 'Date' in df.columns: # If 'Date' still exists and caused error, drop it
+                df.drop(['Date'], axis=1, inplace=True, errors='ignore')
     else:
-        logger.warning("No Date column found")
-        # Add default date-related columns if not present
-        if 'weekday' not in df.columns:
-            df['weekday'] = 0
-        if 'month' not in df.columns:
-            df['month'] = 1
-        if 'year' not in df.columns:
-            df['year'] = 2023
+        logger.warning("No Date column found for preprocessing.")
     
     # Ensure required columns exist
     required_columns = ['Store', 'Temperature', 'Fuel_Price', 'CPI', 'Unemployment', 'Holiday_Flag']
@@ -124,22 +127,27 @@ def preprocess_sales_data(df: pd.DataFrame) -> pd.DataFrame:
     
     return df
 
-def scale_features(df: pd.DataFrame) -> tuple:
+def scale_features(df: pd.DataFrame) -> pd.DataFrame:
     logger.info("Scaling numerical features")
     
     # Create a copy to avoid modifying the original
     df_scaled = df.copy()
-    nf = df.select_dtypes(include=np.number).columns.tolist()
+    # Select only numerical columns for scaling
+    nf = df_scaled.select_dtypes(include=np.number).columns.tolist()
     
+    if not nf:
+        logger.warning("No numerical features found to scale.")
+        return df_scaled # Return the original DataFrame if no numeric columns
+
     try:
         # Initialize scaler
         scaler = StandardScaler()
         
         # Fit and transform the specified columns
-        df_scaled[nf] = scaler.fit_transform(df[nf])
-        logger.info(f"Successfully scaled {len(nf)} features")
+        df_scaled[nf] = scaler.fit_transform(df_scaled[nf])
+        logger.info(f"Successfully scaled {len(nf)} features: {nf}")
         
-        return df_scaled, scaler
+        return df_scaled
     except Exception as e:
         logger.error(f"Error in feature scaling: {str(e)}")
-        return df, None
+        return df # Return original dataframe in case of error during scaling

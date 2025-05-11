@@ -20,6 +20,9 @@ if __name__ == "__main__":
     X = df_proc.drop('Weekly_Sales', axis=1)
     y = df_proc['Weekly_Sales']
 
+    # Get feature names after preprocessing and before scaling for saving with the model
+    feature_names = X.columns.tolist()
+
     # Train/test split
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=1)
 
@@ -36,14 +39,25 @@ if __name__ == "__main__":
     models_dir.mkdir(exist_ok=True)
 
     logger.info("Training Linear Regression...")
-    train_linear_regression(X_train_scaled, y_train, str(models_dir / 'linear_regression_model.pkl'))
+    train_linear_regression(X_train_scaled, y_train, str(models_dir / 'linear_regression_model.pkl'), feature_names=feature_names)
     logger.info("Training XGBoost...")
-    train_xgboost(X_train_scaled, y_train, str(models_dir / 'xgboost_model.pkl'))
+    train_xgboost(X_train_scaled, y_train, str(models_dir / 'xgboost_model.pkl'), feature_names=feature_names)
     logger.info("Models trained and saved.")
 
     # Automated evaluation (train/test RMSE, R2)
-    for model_name in ['linear_regression_model.pkl', 'xgboost_model.pkl']:
-        model = joblib.load(str(models_dir / model_name))
+    for model_name_pkl in ['linear_regression_model.pkl', 'xgboost_model.pkl']:
+        model_path = models_dir / model_name_pkl
+        if not model_path.exists():
+            logger.warning(f"Model file {model_path} not found for evaluation.")
+            continue
+        
+        loaded_data = joblib.load(model_path) # Models are now saved as dicts
+        model = loaded_data.get('model')
+        
+        if model is None:
+            logger.error(f"Could not extract model from {model_path}")
+            continue
+
         for split, Xs, ys in [
             ("Train", X_train_scaled, y_train),
             ("Test", X_test_scaled, y_test)
@@ -51,4 +65,4 @@ if __name__ == "__main__":
             preds = model.predict(Xs)
             rmse = np.sqrt(mean_squared_error(ys, preds))
             r2 = r2_score(ys, preds)
-            logger.info(f"{model_name} {split} RMSE: {rmse:.2f}")
+            logger.info(f"{model_name_pkl} {split} RMSE: {rmse:.2f}")

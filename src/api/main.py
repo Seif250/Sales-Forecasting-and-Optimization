@@ -5,13 +5,18 @@ import pandas as pd
 import io
 import os
 import sys
+import joblib # Added for loading scikit-learn models
+import traceback # Added for detailed error logging
+import numpy as np
+from typing import Optional
 
 # Fix import paths when running from src directory
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from features.preprocess import preprocess_sales_data
-from models.train import load_model, predict
-from api.schemas import PredictRequest, PredictResponse, ModelResponse, HealthResponse, VisualizeResponse, VisualizationData, DataStats, StorePerformance, TimeTrend, DepartmentSales
+from features.preprocess import preprocess_sales_data, scale_features
+# train.py contains load_model, predict. We might need to adjust load_model if it's too generic.
+from models.train import load_model as load_specific_model, predict 
+from api.schemas import PredictRequest, PredictResponse, ModelResponse, HealthResponse, VisualizeResponse, DataStats, VisualizationData, StorePerformance, TimeTrend, DepartmentSales # VisualizeResponse and others might be removed if not used by these simplified endpoints
 from utils.config import load_config
 from utils.logging import get_logger
 
@@ -32,386 +37,445 @@ app.add_middleware(
 config = load_config()
 logger = get_logger("api")
 
-# تصحيح مسار النموذج ليكون مسارًا مطلقًا
-MODEL_PATH = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), config['model']['path'])
+# Define paths for both models
+LINEAR_MODEL_PATH = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'models', 'linear_regression_model.pkl')
+XGBOOST_MODEL_PATH = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'models', 'xgboost_model.pkl')
+
+available_models = {}
 
 @app.on_event("startup")
-def load_trained_model():
-    global model, available_models
-    try:
-        # التحقق من وجود ملف النموذج
-        if not os.path.exists(MODEL_PATH):
-            logger.warning(f"Model file not found at {MODEL_PATH}. Using mock model.")
-            # إنشاء نموذج وهمي في حالة عدم وجود النموذج الحقيقي
-            from sklearn.linear_model import LinearRegression
-            mock_model = LinearRegression()
-            model_data = {
-                'model': mock_model,
-                'feature_names': ['store_nbr', 'family', 'onpromotion', 'date']
-            }
-            model = model_data
-        else:
-            model = load_model(MODEL_PATH)
-            logger.info(f"Model loaded from {MODEL_PATH}")
-        
-        # Initialize available models dictionary
-        # In a real application, this would scan a models directory
-        available_models = {
-            "default": model,
-            "regression": model,
-            # Add more models as needed
-        }
-        
-    except Exception as e:
-        logger.error(f"Failed to load model: {e}")
-        model = None
-        available_models = {}
+def load_trained_models():
+    global available_models
+    logger.info("Attempting to load trained models...")
+    model_paths = {"linear": LINEAR_MODEL_PATH, "xgboost": XGBOOST_MODEL_PATH}
 
-@app.post("/predict", response_model=PredictResponse)
-def predict_sales(request: PredictRequest):
-    if model is None:
-        logger.error("Model not loaded.")
-        return PredictResponse(
-            predictions=[],
-            success=False,
-            message="Model not loaded."
-        )
-    
-    try:
-        df = pd.DataFrame(request.data)
-        df_proc = preprocess_sales_data(df)
-        preds = predict(model, df_proc)
-        logger.info(f"Prediction made for {len(df)} records.")
-        return PredictResponse(
-            predictions=preds.tolist(),
-            success=True,
-            message=f"Successfully predicted {len(df)} records"
-        )
-    except Exception as e:
-        logger.error(f"Error making prediction: {e}")
-        return PredictResponse(
-            predictions=[],
-            success=False,
-            message=f"Error making prediction: {str(e)}"
-        )
+    for model_name, model_path in model_paths.items():
+        try:
+            if os.path.exists(model_path):
+                loaded_data = load_specific_model(model_path)  # load_specific_model is joblib.load
 
-@app.post("/predict_from_csv", response_model=PredictResponse)
-async def predict_from_csv(file: UploadFile = File(...), model: str = Form(None)):
-    # If model is not specified, use default model
-    selected_model_name = model if model in ['linear_regression', 'xgboost'] else None
-    
-    # التعامل مع حالة عدم تحميل النموذج
-    if model is None:
-        logger.error("Model not loaded.")
-        # بدلاً من رفع استثناء، نقوم بإنشاء نموذج وهمي للتنبؤ
-        logger.info("Creating mock model for prediction")
-        # إنشاء تنبؤات وهمية للاختبار
-        try:
-            # قراءة محتويات الملف
-            contents = await file.read()
-            
-            # تسجيل معلومات عن الملف للتصحيح
-            logger.info(f"File name: {file.filename}, content type: {file.content_type}")
-            
-            # محاولة تحويل المحتوى إلى DataFrame
-            try:
-                # محاولة قراءة الملف بترميز UTF-8
-                df = pd.read_csv(io.StringIO(contents.decode('utf-8')))
-            except UnicodeDecodeError:
-                # إذا فشل الترميز UTF-8، جرب ترميزات أخرى
-                logger.warning("UTF-8 decoding failed, trying latin-1 encoding")
-                df = pd.read_csv(io.StringIO(contents.decode('latin-1')))
-            
-            # تسجيل معلومات عن DataFrame
-            logger.info(f"CSV loaded successfully with columns: {df.columns.tolist()}")
-            logger.info(f"DataFrame shape: {df.shape}")
-            
-            # إنشاء تنبؤات وهمية
-            mock_predictions = [1000.0 + i * 100 for i in range(len(df))]
-            
-            # If model is specified, adjust the mock predictions
-            if selected_model_name == 'linear_regression':
-                logger.info(f"Using linear regression mock model")
-                mock_predictions = [800.0 + i * 120 for i in range(len(df))]
-            elif selected_model_name == 'xgboost':
-                logger.info(f"Using XGBoost mock model")
-                mock_predictions = [1200.0 + i * 110 for i in range(len(df))]
-            
-            logger.info(f"Created mock predictions for {len(df)} records with model: {selected_model_name or 'default'}")
-            
-            return PredictResponse(
-                predictions=mock_predictions,
-                success=True,
-                message=f"Successfully processed {len(df)} records with {selected_model_name or 'default'} model"
-            )
-        except Exception as e:
-            logger.error(f"Error processing CSV file with mock model: {e}")
-            import traceback
-            logger.error(f"Detailed error: {traceback.format_exc()}")
-            
-            return PredictResponse(
-                predictions=[],
-                success=False,
-                message=f"Error processing CSV file: {str(e)}"
-            )
-    
-    try:
-        # قراءة محتويات الملف
-        contents = await file.read()
-        
-        # تسجيل معلومات عن الملف للتصحيح
-        logger.info(f"File name: {file.filename}, content type: {file.content_type}")
-        
-        # محاولة تحويل المحتوى إلى DataFrame
-        try:
-            # محاولة قراءة الملف بترميز UTF-8
-            df = pd.read_csv(io.StringIO(contents.decode('utf-8')))
-        except UnicodeDecodeError:
-            # إذا فشل الترميز UTF-8، جرب ترميزات أخرى
-            logger.warning("UTF-8 decoding failed, trying latin-1 encoding")
-            df = pd.read_csv(io.StringIO(contents.decode('latin-1')))
-        
-        # تسجيل معلومات عن DataFrame
-        logger.info(f"CSV loaded successfully with columns: {df.columns.tolist()}")
-        logger.info(f"DataFrame shape: {df.shape}")
-        
-        # معالجة البيانات والتنبؤ
-        df_proc = preprocess_sales_data(df)
-        logger.info(f"Preprocessed DataFrame shape: {df_proc.shape}")
-        
-        # Use the specified model if available
-        if selected_model_name and selected_model_name in available_models:
-            selected_model = available_models[selected_model_name]
-            logger.info(f"Using {selected_model_name} model for prediction")
-            preds = predict(selected_model, df_proc)
-        else:
-            preds = predict(model, df_proc)
-            
-        logger.info(f"Prediction made for {len(df)} records from CSV.")
-        
-        return PredictResponse(
-            predictions=preds.tolist(),
-            success=True,
-            message=f"Successfully processed {len(df)} records with {selected_model_name or 'default'} model"
-        )
-    except Exception as e:
-        logger.error(f"Error processing CSV file: {e}")
-        # تسجيل تفاصيل الخطأ للتصحيح
-        import traceback
-        logger.error(f"Detailed error: {traceback.format_exc()}")
-        
-        # إنشاء تنبؤات وهمية في حالة الخطأ
-        mock_predictions = []
-        try:
-            if df is not None:
-                if selected_model_name == 'linear_regression':
-                    mock_predictions = [800.0 + i * 120 for i in range(len(df))]
-                elif selected_model_name == 'xgboost':
-                    mock_predictions = [1200.0 + i * 110 for i in range(len(df))]
+                if isinstance(loaded_data, dict) and 'model' in loaded_data and 'feature_names' in loaded_data:
+                    available_models[model_name] = loaded_data
+                    logger.info(f"{model_name.capitalize()} model loaded from {model_path} with features: {loaded_data['feature_names']}")
                 else:
-                    mock_predictions = [1000.0 + i * 100 for i in range(len(df))]
-                logger.info(f"Created fallback mock predictions for {len(df)} records")
-        except:
-            mock_predictions = [1000.0 + i * 100 for i in range(10)]
-            logger.info("Created default fallback mock predictions")
+                    # Fallback for old model format or if something went wrong during saving
+                    logger.warning(f"{model_name.capitalize()} model at {model_path} is not in the expected dictionary format (with 'model' and 'feature_names').")
+                    # Attempt to load as a raw model object and extract features if possible (old way)
+                    raw_model_obj = loaded_data 
+                    feature_names_old = None
+                    if model_name == "linear":
+                        if hasattr(raw_model_obj, 'feature_names_in_'):
+                            feature_names_old = raw_model_obj.feature_names_in_.tolist()
+                    elif model_name == "xgboost":
+                        if hasattr(raw_model_obj, 'get_booster') and hasattr(raw_model_obj.get_booster(), 'feature_names'):
+                            feature_names_old = raw_model_obj.get_booster().feature_names
+                        elif hasattr(raw_model_obj, 'feature_names_in_'): # Scikit-learn wrapper
+                            feature_names_old = raw_model_obj.feature_names_in_.tolist()
+                    
+                    available_models[model_name] = {"model": raw_model_obj, "feature_names": feature_names_old}
+                    if feature_names_old:
+                        logger.info(f"Loaded old format {model_name.capitalize()} model. Extracted feature names: {feature_names_old}")
+                    else:
+                        logger.warning(f"Loaded old format {model_name.capitalize()} model, but could not extract feature names. Ensure preprocess_sales_data aligns columns correctly or retrain model to include feature names.")
+            else:
+                logger.warning(f"{model_name.capitalize()} model file not found at {model_path}.")
+                available_models[model_name] = None
+        except Exception as e:
+            logger.error(f"Failed to load {model_name} model from {model_path}: {e}", exc_info=True)
+            available_models[model_name] = None
+
+    if not any(m is not None for m in available_models.values()):
+        logger.error("No models could be loaded. Prediction and relevant endpoints might not work.")
+    logger.info(f"Available models after startup: {list(available_models.keys())}")
+
+# Removed old /predict endpoint
+# @app.post("/predict", response_model=PredictResponse)
+# def predict_sales_endpoint(request: PredictRequest):
+#    ... (old implementation)
+
+# Helper function for core prediction logic
+async def _perform_prediction(input_df: pd.DataFrame, model_name: str) -> PredictResponse:
+    """
+    Internal helper to preprocess data, make predictions, and format response.
+    """
+    selected_model_data = available_models.get(model_name.lower())
+    if selected_model_data is None or selected_model_data.get('model') is None:
+        logger.error(f"Model '{model_name}' not loaded or not available for prediction helper.")
+        raise HTTPException(status_code=503, detail=f"Model '{model_name}' not available.")
+
+    if input_df.empty:
+        logger.warning("Input DataFrame for _perform_prediction is empty.")
+        return PredictResponse(predictions=[], success=True, message="No data provided for prediction, so no predictions made.")
+
+    try:
+        logger.info(f"Original DataFrame for preprocessing (first 5 rows):\n{input_df.head()}")
+        
+        # Preprocess the data - ensure preprocess_sales_data is robust
+        df_proc = preprocess_sales_data(input_df.copy())  # Pass a copy
+        df_proc = scale_features(df_proc) # Scale features
+        logger.info(f"Preprocessed DataFrame columns after preprocess_sales_data and scaling: {df_proc.columns.tolist()}")
+        logger.info(f"Preprocessed DataFrame for prediction (first 5 rows):\n{df_proc.head()}")
+
+        if df_proc.empty and not input_df.empty:
+            logger.warning("Preprocessing resulted in an empty DataFrame from non-empty input.")
+            return PredictResponse(predictions=[], success=True, message="Data preprocessed to empty, no predictions made.")
+        elif df_proc.empty and input_df.empty:
+             return PredictResponse(predictions=[], success=True, message="No data provided, no predictions made.")
+
+        expected_features = selected_model_data.get('feature_names')
+        df_aligned = df_proc
+
+        if expected_features:
+            logger.info(f"Model '{model_name}' expects features: {expected_features}")
             
+            # Check for missing features
+            missing_features = set(expected_features) - set(df_proc.columns)
+            if missing_features:
+                logger.error(f"Missing features in preprocessed data for model '{model_name}': {missing_features}. Expected: {expected_features}, Got: {df_proc.columns.tolist()}")
+                raise HTTPException(status_code=500, detail=f"Internal server error: Preprocessing did not produce required features for model '{model_name}'. Missing: {missing_features}")
+
+            # Check for extra features (and log them)
+            extra_features = set(df_proc.columns) - set(expected_features)
+            if extra_features:
+                logger.warning(f"Extra features in preprocessed data not used by model '{model_name}': {extra_features}. These will be dropped.")
+            
+            # Align df_proc to expected_features
+            try:
+                df_aligned = df_proc[expected_features]
+                logger.info(f"DataFrame columns aligned to expected features for model '{model_name}'. Aligned columns: {df_aligned.columns.tolist()}")
+            except KeyError as e:
+                logger.error(f"KeyError during feature alignment for model '{model_name}': {e}. This should have been caught by missing_features check.")
+                raise HTTPException(status_code=500, detail=f"Internal server error: Feature alignment failed for model '{model_name}'.")
+        else:
+            logger.warning(f"No explicit feature names found for model '{model_name}'. "
+                           f"Predicting based on the column order from preprocess_sales_data. "
+                           f"Ensure preprocess_sales_data output ({df_proc.columns.tolist()}) "
+                           f"matches the training data structure for this model implicitly.")
+
+        # Make predictions using the function from models.train
+        preds = predict(selected_model_data, df_aligned) # predict is from models.train
+        
+        predictions_list = preds.tolist() if hasattr(preds, 'tolist') else list(preds)
+
+        logger.info(f"Prediction successful for {len(predictions_list)} records using {model_name} model. Predictions (first 5): {predictions_list[:5]}")
         return PredictResponse(
-            predictions=mock_predictions,
+            predictions=predictions_list,
             success=True,
-            message=f"Fallback predictions generated due to error: {str(e)}"
+            message=f"Successfully predicted {len(predictions_list)} records using {model_name} model."
         )
+    except ValueError as ve: # Catch specific errors from preprocessing or data conversion
+        logger.error(f"ValueError during _perform_prediction: {ve}", exc_info=True)
+        raise HTTPException(status_code=400, detail=f"Invalid data format or value during processing: {str(ve)}")
+    except Exception as e: # Catch other errors during prediction logic
+        logger.error(f"Error in _perform_prediction: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=f"Error during prediction processing: {str(e)}")
+
+
+@app.post("/api/predict_json", response_model=PredictResponse, tags=["Predictions"])
+async def predict_from_json(request: PredictRequest):
+    """
+    Predict sales from JSON data.
+    Expects a list of records and a model name.
+    """
+    logger.info(f"Received JSON prediction request for model: {request.model}")
+    model_name = request.model.lower() if request.model else "xgboost"  # Default to xgboost
+
+    # Model availability check (can be done here or within _perform_prediction,
+    # doing it here allows for a more specific early exit if model doesn't exist at all)
+    if model_name not in available_models or available_models.get(model_name) is None or available_models.get(model_name).get('model') is None:
+        logger.error(f"Model '{model_name}' not loaded or not available for JSON request.")
+        raise HTTPException(status_code=503, detail=f"Model '{model_name}' not available.")
+
+    if not request.data:
+        logger.warning("No data provided in JSON request.")
+        raise HTTPException(status_code=400, detail="No data provided for prediction.")
+
+    try:
+        if not isinstance(request.data, list) or not all(isinstance(item, dict) for item in request.data):
+            raise HTTPException(status_code=400, detail="Input data must be a list of records (dictionaries).")
+        
+        df = pd.DataFrame(request.data)
+        if df.empty:
+            logger.info("Received empty data list in JSON request.")
+            # Consistent with _perform_prediction, return success with empty predictions
+            return PredictResponse(predictions=[], success=True, message="No data provided in the list for prediction.")
+
+        # Call the helper function for actual prediction logic
+        return await _perform_prediction(df, model_name)
+
+    except HTTPException as he: # Re-raise known HTTP exceptions
+        logger.error(f"HTTP Exception during JSON prediction: {he.detail}")
+        raise he
+    except Exception as e: # Catch unexpected errors during JSON request handling (e.g., DataFrame conversion)
+        logger.error(f"Unexpected error processing JSON request: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=f"Error processing JSON request: {str(e)}")
+
+
+@app.post("/api/predict_csv", response_model=PredictResponse, tags=["Predictions"])
+async def predict_from_csv(
+    model_name: str = Form(default="xgboost", description="Name of the model to use (e.g., 'linear', 'xgboost')"),
+    file: UploadFile = File(..., description="CSV file containing sales data for prediction")
+):
+    """
+    Predict sales from an uploaded CSV file.
+    """
+    logger.info(f"Received CSV prediction request for model: {model_name}")
+    
+    # Model availability check
+    if model_name.lower() not in available_models or available_models.get(model_name.lower()) is None or available_models.get(model_name.lower()).get('model') is None:
+        logger.error(f"Model '{model_name}' not loaded or not available for CSV request.")
+        raise HTTPException(status_code=503, detail=f"Model '{model_name}' not available.")
+
+    if not file.filename.endswith('.csv'):
+        logger.warning(f"Invalid file type uploaded: {file.filename}")
+        raise HTTPException(status_code=400, detail="Invalid file type. Please upload a CSV file.")
+
+    try:
+        contents = await file.read()
+        if not contents:
+            logger.warning("Uploaded CSV file is empty.")
+            raise HTTPException(status_code=400, detail="CSV file is empty.")
+            
+        df = pd.read_csv(io.BytesIO(contents))
+        
+        if df.empty:
+            logger.info("CSV file parsed to an empty DataFrame.")
+            return PredictResponse(predictions=[], success=True, message="CSV file is empty or contains no data rows.")
+
+        # Call the helper function for actual prediction logic
+        return await _perform_prediction(df, model_name)
+
+    except HTTPException as he: # Re-raise known HTTP exceptions
+        logger.error(f"HTTP Exception during CSV prediction: {he.detail}")
+        raise he
+    except pd.errors.EmptyDataError: # Specifically for pd.read_csv if it fails on empty data before df.empty check
+        logger.error("Uploaded CSV file is empty or unparseable (EmptyDataError).", exc_info=True)
+        raise HTTPException(status_code=400, detail="Uploaded CSV file is empty or could not be parsed.")
+    except pd.errors.ParserError:
+        logger.error("Failed to parse CSV file.", exc_info=True)
+        raise HTTPException(status_code=400, detail="Could not parse the CSV file. Please check its format.")
+    except Exception as e: # Catch unexpected errors during CSV request handling
+        logger.error(f"Unexpected error processing CSV request: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=f"Error processing CSV and making prediction: {str(e)}")
+    finally:
+        await file.close()
 
 @app.get("/model_info", response_model=ModelResponse)
-def get_model_info():
-    if model is None:
-        logger.error("Model not loaded.")
-        raise HTTPException(status_code=500, detail="Model not loaded.")
+def get_model_info(model_name: str = Query("xgboost", description="Name of the model to get info for (e.g., 'linear', 'xgboost')")):
+    model_name = model_name.lower()
+    selected_model_data_dict = available_models.get(model_name)
+
+    if selected_model_data_dict is None or selected_model_data_dict.get('model') is None:
+        raise HTTPException(status_code=404, detail=f"Model '{model_name}' not found or not loaded.")
+
+    actual_model = selected_model_data_dict['model']
+    features = selected_model_data_dict.get('feature_names')
     
-    # Get model information
-    model_info = {
-        "model_name": model.__class__.__name__,
-        "model_type": "Regression",
-        "metrics": {"r2": 0.85},  # Example metrics, replace with actual metrics if available
-        "features": ["store_nbr", "family", "onpromotion", "date"]  # Example features
+    model_actual_name = actual_model.__class__.__name__
+
+    # If features were not in the dict, try to get them from the model directly (backup)
+    if features is None:
+        if hasattr(actual_model, 'feature_names_in_'):
+            features = actual_model.feature_names_in_.tolist()
+        elif hasattr(actual_model, 'get_booster') and hasattr(actual_model.get_booster(), 'feature_names'):
+            features = actual_model.get_booster().feature_names
+        else:
+            features = [] # Default to empty list if not found
+
+    model_info_response = {
+        "model_name": model_actual_name,
+        "model_type": "Regression", # This is generic, could be more specific if known
+        "metrics": {"r2_score": "N/A"}, # Placeholder, actual metrics should be stored with the model
+        "features": features
     }
-    return ModelResponse(**model_info)
+    return ModelResponse(**model_info_response)
 
 @app.get("/available_models")
-def get_available_models():
+def get_available_models_endpoint():
     """Return a list of available models for prediction"""
-    return {"models": list(available_models.keys())}
-
-@app.post("/predict_with_model/{model_name}", response_model=PredictResponse)
-def predict_with_model(model_name: str = Path(..., description="Name of the model to use"), request: PredictRequest = None):
-    """Make predictions using a specific model"""
-    if model_name not in available_models:
-        return JSONResponse(
-            status_code=404,
-            content={"success": False, "message": f"Model '{model_name}' not found", "predictions": []}
-        )
-    
-    if request is None or not request.data:
-        return JSONResponse(
-            status_code=400,
-            content={"success": False, "message": "No data provided", "predictions": []}
-        )
-    
-    try:
-        selected_model = available_models[model_name]
-        df = pd.DataFrame(request.data)
-        df_proc = preprocess_sales_data(df)
-        preds = predict(selected_model, df_proc)
-        logger.info(f"Prediction made with model '{model_name}' for {len(df)} records.")
-        
-        return PredictResponse(
-            predictions=preds.tolist(),
-            success=True,
-            message=f"Prediction successful using model '{model_name}'"
-        )
-    except Exception as e:
-        logger.error(f"Error making prediction with model '{model_name}': {e}")
-        return PredictResponse(
-            predictions=[],
-            success=False,
-            message=f"Error making prediction: {str(e)}"
-        )
+    return {"models": [name for name, model in available_models.items() if model is not None]}
 
 @app.get("/health", response_model=HealthResponse)
 def health_check():
+    is_any_model_loaded = any(model is not None for model in available_models.values())
     return HealthResponse(
-        status="healthy", 
-        model_loaded=model is not None,
+        status="healthy" if is_any_model_loaded else "degraded", 
+        model_loaded=is_any_model_loaded,
         version="1.0.0"
     )
 
 # Add new endpoint for data visualization
-@app.post("/visualize_data", response_model=VisualizeResponse)
+@app.post("/api/visualize_data", response_model=VisualizeResponse, tags=["Data Analysis"])
 async def visualize_data(file: UploadFile = File(...)):
+    df = None
+    contents = None
     try:
-        # Read file contents
         contents = await file.read()
-        
-        logger.info(f"Visualization for file: {file.filename}")
-        
-        # Try to convert content to DataFrame
+        if not contents:
+            logger.warning(f"Uploaded file {file.filename} is empty.")
+            raise HTTPException(status_code=400, detail="Uploaded file is empty.")
+
+        logger.info(f"Processing visualization for file: {file.filename}")
+
         try:
-            df = pd.read_csv(io.StringIO(contents.decode('utf-8')))
-        except UnicodeDecodeError:
-            logger.warning("UTF-8 decoding failed, trying latin-1 encoding")
-            df = pd.read_csv(io.StringIO(contents.decode('latin-1')))
-        
-        # Log available columns for debugging
-        logger.info(f"Available columns in CSV: {df.columns.tolist()}")
-        
-        # Convert potential column name variations
-        column_mapping = {
-            'store': 'Store',
-            'stores': 'Store',
-            'temp': 'Temperature',
-            'temperature': 'Temperature',
-            'fuel': 'Fuel_Price',
-            'fuel_price': 'Fuel_Price',
-            'price': 'Fuel_Price',
-            'unemployment_rate': 'Unemployment',
-            'holiday': 'Holiday_Flag',
-            'holiday_flag': 'Holiday_Flag',
-            'is_holiday': 'Holiday_Flag',
-            'weekly_sales': 'Weekly_Sales',
-            'sales': 'Weekly_Sales'
-        }
-        
-        # Normalize column names to expected format
-        df.columns = [column_mapping.get(col.lower(), col) for col in df.columns]
-        
-        # Preprocess data
-        df_proc = preprocess_sales_data(df)
-        
-        # Get basic statistics
-        stats = DataStats(
-            columns=df.columns.tolist(),
-            rows=len(df),
-            statistics={
-                col: {
-                    "min": float(df[col].min()) if pd.api.types.is_numeric_dtype(df[col]) else None,
-                    "max": float(df[col].max()) if pd.api.types.is_numeric_dtype(df[col]) else None,
-                    "mean": float(df[col].mean()) if pd.api.types.is_numeric_dtype(df[col]) else None,
-                    "median": float(df[col].median()) if pd.api.types.is_numeric_dtype(df[col]) else None,
-                }
-                for col in df.select_dtypes(include=['number']).columns
-            },
-            categorical_columns=[col for col in df.select_dtypes(include=['object', 'category']).columns]
-        )
-        
-        # Create visualization data for store performance
-        store_performances = []
-        if 'Store' in df.columns and 'Weekly_Sales' in df.columns:
-            store_sales = df.groupby('Store')['Weekly_Sales'].mean().reset_index()
-            for _, row in store_sales.iterrows():
-                store_performances.append(StorePerformance(
-                    store=int(row['Store']),
-                    average_sales=float(row['Weekly_Sales'])
-                ))
-        
-        # Create time trend data if Date column exists
-        time_trends = []
-        if 'Date' in df.columns and 'Weekly_Sales' in df.columns:
+            # Try decoding with utf-8, then latin-1 as a fallback
             try:
-                df['Date'] = pd.to_datetime(df['Date'])
-                time_sales = df.groupby(df['Date'].dt.strftime('%Y-%m'))['Weekly_Sales'].mean().reset_index()
-                for _, row in time_sales.iterrows():
-                    time_trends.append(TimeTrend(
-                        period=row['Date'],
-                        average_sales=float(row['Weekly_Sales'])
-                    ))
+                df = pd.read_csv(io.StringIO(contents.decode('utf-8')))
+            except UnicodeDecodeError:
+                logger.warning("UTF-8 decoding failed for CSV, trying latin-1.")
+                df = pd.read_csv(io.StringIO(contents.decode('latin-1')))
+        except pd.errors.EmptyDataError:
+            logger.error(f"Uploaded CSV {file.filename} is empty or unparseable (EmptyDataError).", exc_info=True)
+            raise HTTPException(status_code=400, detail="Uploaded CSV file is empty or could not be parsed.")
+        except pd.errors.ParserError:
+            logger.error(f"Failed to parse CSV file {file.filename} for visualization.", exc_info=True)
+            raise HTTPException(status_code=400, detail="Could not parse the CSV file. Please check its format.")
+        except Exception as e:
+            logger.error(f"Unexpected error reading CSV {file.filename}: {e}", exc_info=True)
+            raise HTTPException(status_code=500, detail=f"Error reading CSV file: {str(e)}")
+
+
+        if df.empty:
+            logger.info(f"CSV file {file.filename} parsed to an empty DataFrame.")
+            return VisualizeResponse(
+                preprocessed_data=None,
+                visualizations=VisualizationData(),
+                success=True,
+                message="CSV file is empty or contains no data rows."
+            )
+
+        logger.info(f"Original columns in uploaded CSV for visualization: {df.columns.tolist()}")
+        
+        # ...existing code...
+        if 'Date' in df.columns:
+            try:
+                # Attempt to parse with specific format first, then infer
+                original_dates = df['Date'].copy() # Keep original for fallback if needed
+                try:
+                    df['Date'] = pd.to_datetime(df['Date'], format='%d-%m-%Y', errors='raise')
+                    logger.info("Parsed 'Date' column with format '%d-%m-%Y' for visualization.")
+                except ValueError:
+                    logger.warning("Failed to parse 'Date' for visualization with format '%d-%m-%Y', trying to infer format.")
+                    df['Date'] = pd.to_datetime(original_dates, infer_datetime_format=True, errors='coerce')
+                
+                # Fallback if a large portion became NaT with infer_datetime_format
+                if df['Date'].isna().sum() > len(df) / 2:
+                    logger.warning("High number of NaNs after inferring date format for visualization. Trying with dayfirst=True as a fallback.")
+                    # Ensure original_dates is used here if df['Date'] was modified in place by previous attempts
+                    df['Date'] = pd.to_datetime(original_dates, dayfirst=True, errors='coerce')
+
+                if df['Date'].notna().any():
+                     logger.info("'Date' column converted to datetime for visualization aggregations.")
+                else:
+                    logger.warning("'Date' column exists but could not be converted to datetime for all values for visualization.")
             except Exception as e:
-                logger.error(f"Error processing date data: {e}")
+                logger.warning(f"Could not convert 'Date' column to datetime for visualization: {e}. Time-based aggregations might be affected.")
         
-        # Create department sales data if Dept column exists
+        # Preprocess a copy of the data for statistics
+        df_for_stats = df.copy()
+        df_proc = preprocess_sales_data(df_for_stats) # preprocess_sales_data handles its own date parsing if 'Date' is present
+        df_proc = scale_features(df_proc) # Scale features
+        logger.info(f"Preprocessed DataFrame for stats (first 5 rows):\n{df_proc.head() if not df_proc.empty else 'Empty'}")
+        logger.info(f"Preprocessed DataFrame columns for stats: {df_proc.columns.tolist() if not df_proc.empty else 'Empty'}")
+
+        stats_data: Optional[DataStats]
+        source_for_stats = df_proc if not df_proc.empty else df # Fallback to original df if preprocessing yields empty
+        
+        if source_for_stats.empty:
+            stats_data = None
+        else:
+            stats_data = DataStats(
+                columns=source_for_stats.columns.tolist(),
+                rows=len(source_for_stats),
+                statistics={
+                    col: {
+                        "min": float(source_for_stats[col].min()) if pd.api.types.is_numeric_dtype(source_for_stats[col]) and source_for_stats[col].notna().any() else None,
+                        "max": float(source_for_stats[col].max()) if pd.api.types.is_numeric_dtype(source_for_stats[col]) and source_for_stats[col].notna().any() else None,
+                        "mean": float(source_for_stats[col].mean()) if pd.api.types.is_numeric_dtype(source_for_stats[col]) and source_for_stats[col].notna().any() else None,
+                        "median": float(source_for_stats[col].median()) if pd.api.types.is_numeric_dtype(source_for_stats[col]) and source_for_stats[col].notna().any() else None,
+                    }
+                    for col in source_for_stats.select_dtypes(include=np.number).columns
+                },
+                categorical_columns=[col for col in source_for_stats.select_dtypes(include=['object', 'category']).columns]
+            )
+
+        # ...existing code...
+        # Aggregations for visualizations (using the original df after column mapping and date conversion)
+        store_performances = []
+        if 'Store' in df.columns and 'Weekly_Sales' in df.columns and pd.api.types.is_numeric_dtype(df['Weekly_Sales']) and df['Weekly_Sales'].notna().any():
+            store_sales_agg = df.groupby('Store')['Weekly_Sales'].sum().reset_index()
+            store_performances = [StorePerformance(store_id=int(row['Store']), total_sales=float(row['Weekly_Sales'])) for _, row in store_sales_agg.iterrows()]
+        else:
+            logger.warning("Could not generate store performance: 'Store' or 'Weekly_Sales' missing, not numeric, or all NaN.")
+
+        time_trends = []
+        if 'Date' in df.columns and 'Weekly_Sales' in df.columns and pd.api.types.is_datetime64_any_dtype(df['Date']) and pd.api.types.is_numeric_dtype(df['Weekly_Sales']) and df['Weekly_Sales'].notna().any():
+            # ...existing code...
+            # Ensure Date is not NaT before resampling
+            df_time_agg = df.dropna(subset=['Date'])
+            if not df_time_agg.empty:
+                 # ...existing code...
+                 # Resample to weekly, using Monday as the start of the week. Sum sales.
+                time_sales_agg = df_time_agg.set_index('Date').resample('W-MON')['Weekly_Sales'].sum().reset_index()
+                time_trends = [TimeTrend(date_str=row['Date'].strftime('%Y-%m-%d'), sales=float(row['Weekly_Sales'])) for _, row in time_sales_agg.iterrows()]
+        else:
+            logger.warning("Could not generate time trends: 'Date' (datetime) or 'Weekly_Sales' (numeric) missing, or all NaN.")
+            
         department_sales_list = []
-        if 'Dept' in df.columns and 'Weekly_Sales' in df.columns:
-            dept_sales = df.groupby('Dept')['Weekly_Sales'].sum().reset_index()
-            for _, row in dept_sales.iterrows():
-                department_sales_list.append(DepartmentSales(
-                    department=str(row['Dept']),
-                    total_sales=float(row['Weekly_Sales'])
-                ))
-        
-        # Create visualization data
+        if 'Dept' in df.columns and 'Weekly_Sales' in df.columns and pd.api.types.is_numeric_dtype(df['Weekly_Sales']) and df['Weekly_Sales'].notna().any():
+            # ...existing code...
+            # Ensure Dept is not all NaN
+            if df['Dept'].notna().any():
+                dept_sales_agg = df.groupby('Dept')['Weekly_Sales'].sum().reset_index()
+                department_sales_list = [DepartmentSales(department_id=str(row['Dept']), total_sales=float(row['Weekly_Sales'])) for _, row in dept_sales_agg.iterrows()] # ...existing code... # Assuming Dept can be non-integer
+            else:
+                logger.warning("Could not generate department sales: 'Dept' column is all NaN.")
+        else:
+            logger.warning("Could not generate department sales: 'Dept' or 'Weekly_Sales' missing, not numeric, or all NaN.")
+
         visualization_data = VisualizationData(
             store_performance=store_performances,
             time_trend=time_trends,
             department_sales=department_sales_list
         )
-        
-        result = VisualizeResponse(
-            preprocessed_data=stats,
+
+        return VisualizeResponse(
+            preprocessed_data=stats_data,
             visualizations=visualization_data,
             success=True,
-            message="Data visualization completed successfully"
+            message="Data visualization processed successfully."
         )
-        
-        return result
+    except HTTPException as he:
+        logger.error(f"HTTPException in visualize_data: {he.detail}", exc_info=True)
+        raise he # ...existing code... # Re-raise HTTPException to be handled by FastAPI
     except Exception as e:
-        logger.error(f"Error in data visualization: {e}")
-        import traceback
-        logger.error(f"Detailed error: {traceback.format_exc()}")
-        
-        # Create minimal response with empty visualizations
-        stats = None
-        if 'df' in locals() and df is not None:
+        logger.error(f"Unexpected error in visualize_data endpoint: {e}", exc_info=True)
+        # ...existing code...
+        # Create minimal stats for error response to avoid further errors
+        minimal_stats_error_response = DataStats(columns=[], rows=0, statistics={}, categorical_columns=[])
+        if df is not None and not df.empty: # ...existing code... # Try to get columns from original df if available
             try:
-                stats = DataStats(
+                minimal_stats_error_response = DataStats(
                     columns=df.columns.tolist(),
                     rows=len(df),
-                    statistics={},
-                    categorical_columns=[]
+                    statistics={}, 
+                    categorical_columns=[col for col in df.select_dtypes(include=['object', 'category']).columns if col in df.columns]
                 )
-            except:
-                pass
+            except Exception as stat_err:
+                 logger.error(f"Error creating minimal stats for error response: {stat_err}")
         
         return VisualizeResponse(
-            preprocessed_data=stats,
-            visualizations=VisualizationData(),
+            preprocessed_data=minimal_stats_error_response,
+            visualizations=VisualizationData(), # ...existing code... # Empty visualizations
             success=False,
-            message=f"Error in data visualization: {str(e)}"
+            message=f"An error occurred during data visualization: {str(e)}"
         )
+    finally:
+        if file:
+            try:
+                await file.close()
+                logger.debug(f"File {file.filename} closed.")
+            except Exception as e_close:
+                logger.error(f"Error closing file {file.filename}: {e_close}", exc_info=True)
+
+# ... rest of the file
