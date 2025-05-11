@@ -496,7 +496,7 @@ async def visualize_data(file: UploadFile = File(...)):
         store_performances = []
         if 'Store' in df.columns and 'Weekly_Sales' in df.columns and pd.api.types.is_numeric_dtype(df['Weekly_Sales']) and df['Weekly_Sales'].notna().any():
             store_sales_agg = df.groupby('Store')['Weekly_Sales'].sum().reset_index()
-            store_performances = [StorePerformance(store_id=int(row['Store']), total_sales=float(row['Weekly_Sales'])) for _, row in store_sales_agg.iterrows()]
+            store_performances = [StorePerformance(store=int(row['Store']), average_sales=float(row['Weekly_Sales'])) for _, row in store_sales_agg.iterrows()]
         else:
             logger.warning("Could not generate store performance: 'Store' or 'Weekly_Sales' missing, not numeric, or all NaN.")
 
@@ -509,7 +509,7 @@ async def visualize_data(file: UploadFile = File(...)):
                  # ...existing code...
                  # Resample to weekly, using Monday as the start of the week. Sum sales.
                 time_sales_agg = df_time_agg.set_index('Date').resample('W-MON')['Weekly_Sales'].sum().reset_index()
-                time_trends = [TimeTrend(date_str=row['Date'].strftime('%Y-%m-%d'), sales=float(row['Weekly_Sales'])) for _, row in time_sales_agg.iterrows()]
+                time_trends = [TimeTrend(period=row['Date'].strftime('%Y-%m-%d'), average_sales=float(row['Weekly_Sales'])) for _, row in time_sales_agg.iterrows()]
         else:
             logger.warning("Could not generate time trends: 'Date' (datetime) or 'Weekly_Sales' (numeric) missing, or all NaN.")
             
@@ -519,7 +519,7 @@ async def visualize_data(file: UploadFile = File(...)):
             # Ensure Dept is not all NaN
             if df['Dept'].notna().any():
                 dept_sales_agg = df.groupby('Dept')['Weekly_Sales'].sum().reset_index()
-                department_sales_list = [DepartmentSales(department_id=str(row['Dept']), total_sales=float(row['Weekly_Sales'])) for _, row in dept_sales_agg.iterrows()] # ...existing code... # Assuming Dept can be non-integer
+                department_sales_list = [DepartmentSales(department=str(row['Dept']), total_sales=float(row['Weekly_Sales'])) for _, row in dept_sales_agg.iterrows()] # ...existing code... # Assuming Dept can be non-integer
             else:
                 logger.warning("Could not generate department sales: 'Dept' column is all NaN.")
         else:
