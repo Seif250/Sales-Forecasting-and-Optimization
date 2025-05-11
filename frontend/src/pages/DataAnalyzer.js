@@ -445,34 +445,6 @@ const DataAnalyzer = () => {
           </ModernCard>
         </Grid>
         
-        {/* Economic Factors */}
-        <Grid item xs={12}>
-          <ModernCard glowColor="green">
-            <Typography variant="h6" fontWeight={600} gutterBottom>
-              Economic Factors (CPI, Unemployment, Fuel Price)
-            </Typography>
-            <Box>
-              {csvData && (csvData.headers.includes('CPI') || 
-                           csvData.headers.includes('Unemployment') || 
-                           csvData.headers.includes('Fuel_Price')) ? (
-                <Line data={economicData} options={economicOptions} />
-              ) : (
-                <Box sx={{ 
-                  display: 'flex', 
-                  alignItems: 'center', 
-                  justifyContent: 'center',
-                  bgcolor: 'rgba(54, 215, 183, 0.1)',
-                  borderRadius: 2
-                }}>
-                  <Typography color="text.secondary">
-                    Economic factors data not available in the CSV.
-                  </Typography>
-                </Box>
-              )}
-            </Box>
-          </ModernCard>
-        </Grid>
-        
         {/* Store Performance and Holiday Impact */}
         <Grid item xs={12} md={6}>
           <ModernCard glowColor="pink">

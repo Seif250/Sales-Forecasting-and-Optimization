@@ -1,13 +1,16 @@
 import React, { useState } from 'react';
 import { 
   Typography, Box, Accordion, AccordionSummary, AccordionDetails,
-  TextField, Grid, Divider
+  TextField, Grid, Divider, Dialog, DialogTitle, DialogContent,
+  DialogActions, IconButton, Paper, Avatar
 } from '@mui/material';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import HelpOutlineIcon from '@mui/icons-material/HelpOutline';
 import ContactSupportIcon from '@mui/icons-material/ContactSupport';
 import LiveHelpIcon from '@mui/icons-material/LiveHelp';
 import ArticleIcon from '@mui/icons-material/Article';
+import CloseIcon from '@mui/icons-material/Close';
+import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import PageLayout from '../components/PageLayout';
 import PageHeader from '../components/PageHeader';
 import ModernCard from '../components/ModernCard';
@@ -21,6 +24,8 @@ const HelpPage = () => {
     subject: '',
     message: ''
   });
+  const [openDialog, setOpenDialog] = useState(false);
+  const [sentMessage, setSentMessage] = useState(null);
 
   const handleChange = (panel) => (event, isExpanded) => {
     setExpanded(isExpanded ? panel : false);
@@ -34,11 +39,39 @@ const HelpPage = () => {
     });
   };
 
+  const handleCloseDialog = () => {
+    setOpenDialog(false);
+  };
+
   const handleSubmit = (e) => {
     e.preventDefault();
-    // Here you would normally send the form data to your backend
-    console.log('Form submitted:', formData);
-    alert('Thank you for your message. We will get back to you soon!');
+    
+    // Create a new message object
+    const newMessage = {
+      id: Date.now(), // Use timestamp as a simple unique ID
+      sender: formData.name,
+      email: formData.email,
+      subject: formData.subject,
+      content: formData.message,
+      date: new Date().toISOString().split('T')[0], // Current date in YYYY-MM-DD format
+      read: false,
+      avatar: formData.name.charAt(0).toUpperCase(), // First letter of name as avatar
+      sent: true // Mark this as a message sent by the user
+    };
+    
+    // Get existing messages from localStorage or initialize empty array
+    const existingMessages = JSON.parse(localStorage.getItem('userMessages') || '[]');
+    
+    // Add new message to the array
+    const updatedMessages = [newMessage, ...existingMessages];
+    
+    // Save back to localStorage
+    localStorage.setItem('userMessages', JSON.stringify(updatedMessages));
+    
+    // Set the sent message and open dialog
+    setSentMessage(newMessage);
+    setOpenDialog(true);
+    
     // Reset form
     setFormData({
       name: '',
@@ -280,6 +313,103 @@ const HelpPage = () => {
           </ModernCard>
         </Grid>
       </Grid>
+
+      {/* Dialog for sent message */}
+      <Dialog
+        open={openDialog}
+        onClose={handleCloseDialog}
+        maxWidth="sm"
+        fullWidth
+        PaperProps={{
+          sx: {
+            borderRadius: 2,
+            boxShadow: '0 8px 32px rgba(0, 0, 0, 0.2)'
+          }
+        }}
+      >
+        <DialogTitle 
+          sx={{ 
+            display: 'flex', 
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            borderBottom: theme => `1px solid ${theme.palette.divider}`,
+            pb: 2
+          }}
+        >
+          <Box sx={{ display: 'flex', alignItems: 'center' }}>
+            <CheckCircleIcon sx={{ color: 'success.main', mr: 2 }} />
+            <Typography variant="h6">Message Sent Successfully</Typography>
+          </Box>
+          <IconButton edge="end" color="inherit" onClick={handleCloseDialog} aria-label="close">
+            <CloseIcon />
+          </IconButton>
+        </DialogTitle>
+        
+        <DialogContent sx={{ py: 3 }}>
+          {sentMessage && (
+            <>
+              <Box sx={{ 
+                display: 'flex', 
+                alignItems: 'center', 
+                mb: 2,
+                p: 2,
+                bgcolor: theme => theme.palette.action.hover,
+                borderRadius: 1
+              }}>
+                <Avatar sx={{ mr: 2, bgcolor: theme => theme.palette.primary.main }}>
+                  {sentMessage.avatar}
+                </Avatar>
+                <Box>
+                  <Typography variant="subtitle1" fontWeight={600}>
+                    {sentMessage.sender}
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary">
+                    {sentMessage.email}
+                  </Typography>
+                </Box>
+                <Typography variant="body2" color="text.secondary" sx={{ ml: 'auto' }}>
+                  {sentMessage.date}
+                </Typography>
+              </Box>
+              
+              <Typography variant="h6" fontWeight={600} gutterBottom>
+                {sentMessage.subject}
+              </Typography>
+              
+              <Paper elevation={0} sx={{ 
+                p: 3, 
+                mb: 2, 
+                bgcolor: theme => theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.02)',
+                border: theme => `1px solid ${theme.palette.divider}`,
+                borderRadius: 2
+              }}>
+                <Typography variant="body1">
+                  {sentMessage.content}
+                </Typography>
+              </Paper>
+              
+              <Typography variant="body2" color="text.secondary" sx={{ mt: 2 }}>
+                Your message has been saved. You can view all your messages in the Messages page.
+              </Typography>
+            </>
+          )}
+        </DialogContent>
+        
+        <DialogActions sx={{ px: 3, py: 2, borderTop: theme => `1px solid ${theme.palette.divider}` }}>
+          <ModernButton onClick={handleCloseDialog} color="grey" variant="outlined">
+            Close
+          </ModernButton>
+          <ModernButton 
+            onClick={() => { 
+              handleCloseDialog(); 
+              window.location.href = '/messages'; 
+            }} 
+            color="pink"
+          >
+            View All Messages
+          </ModernButton>
+        </DialogActions>
+      </Dialog>
     </PageLayout>
   );
 };

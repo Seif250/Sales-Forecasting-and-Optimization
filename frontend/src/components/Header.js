@@ -24,6 +24,7 @@ import HelpIcon from '@mui/icons-material/Help';
 import LightModeIcon from '@mui/icons-material/LightMode';
 import DarkModeIcon from '@mui/icons-material/DarkMode';
 import AnalyticsIcon from '@mui/icons-material/Analytics';
+import MailOutlineIcon from '@mui/icons-material/MailOutline';
 
 const Header = ({ darkMode, toggleDarkMode }) => {
   const location = useLocation();
@@ -50,6 +51,7 @@ const Header = ({ darkMode, toggleDarkMode }) => {
     { path: '/visualize', text: 'Insights', icon: <InsightsIcon fontSize="small" sx={{ mr: 0.5 }} /> },
     { path: '/blog', text: 'Blog', icon: <BookIcon fontSize="small" sx={{ mr: 0.5 }} /> },
     { path: '/docs', text: 'Documentation', icon: <ArticleIcon fontSize="small" sx={{ mr: 0.5 }} /> },
+    { path: '/messages', text: 'Messages', icon: <MailOutlineIcon fontSize="small" sx={{ mr: 0.5 }} /> },
     { path: '/about', text: 'About', icon: <InfoIcon fontSize="small" sx={{ mr: 0.5 }} /> },
     { path: '/help', text: 'Help', icon: <HelpIcon fontSize="small" sx={{ mr: 0.5 }} /> },
   ];

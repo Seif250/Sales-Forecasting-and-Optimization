@@ -207,7 +207,7 @@ const HomePage = () => {
             variant="contained" 
             size="large" 
             component={Link} 
-            to="/predict" 
+            to="/analyze" 
             sx={{ 
               borderRadius: '30px', 
               px: 4, 

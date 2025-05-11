@@ -12,6 +12,7 @@ import DocumentationPage from './pages/DocumentationPage';
 import AboutPage from './pages/AboutPage';
 import HelpPage from './pages/HelpPage';
 import DataAnalyzer from './pages/DataAnalyzer';
+import MessagesPage from './pages/MessagesPage';
 
 function App() {
   const [darkMode, setDarkMode] = useState(true);
@@ -136,6 +137,7 @@ function App() {
           <Route path="/docs" element={<DocumentationPage />} />
           <Route path="/about" element={<AboutPage />} />
           <Route path="/help" element={<HelpPage />} />
+          <Route path="/messages" element={<MessagesPage />} />
         </Routes>
       </div>
     </ThemeProvider>

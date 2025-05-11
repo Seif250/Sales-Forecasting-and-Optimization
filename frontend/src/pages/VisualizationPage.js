@@ -311,6 +311,76 @@ const VisualizationPage = () => {
     })).sort((a, b) => b.average_sales - a.average_sales);
   };
   
+  const renderTopSellingStoresChart = () => {
+    if (!visualizationData || !visualizationData.storePerformance || visualizationData.storePerformance.length === 0) return null;
+    
+    // Take top 10 stores
+    const topStores = visualizationData.storePerformance.slice(0, 10);
+    
+    const data = {
+      labels: topStores.map(item => `Store ${item.store}`),
+      datasets: [
+        {
+          label: 'Average Weekly Sales',
+          data: topStores.map(item => item.average_sales),
+          backgroundColor: 'rgba(77, 105, 250, 0.7)',
+          borderColor: 'rgb(77, 105, 250)',
+          borderWidth: 1,
+        },
+      ],
+    };
+    
+    const options = {
+      responsive: true,
+      plugins: {
+        legend: {
+          position: 'top',
+        },
+        title: {
+          display: true,
+          text: 'Top 10 Selling Stores',
+        },
+      },
+    };
+    
+    return <Bar data={data} options={options} />;
+  };
+  
+  const renderLeastSellingStoresChart = () => {
+    if (!visualizationData || !visualizationData.storePerformance || visualizationData.storePerformance.length === 0) return null;
+    
+    // Take least 5 stores
+    const leastStores = [...visualizationData.storePerformance].sort((a, b) => a.average_sales - b.average_sales).slice(0, 5);
+    
+    const data = {
+      labels: leastStores.map(item => `Store ${item.store}`),
+      datasets: [
+        {
+          label: 'Average Weekly Sales',
+          data: leastStores.map(item => item.average_sales),
+          backgroundColor: 'rgba(255, 110, 134, 0.7)',
+          borderColor: 'rgb(255, 110, 134)',
+          borderWidth: 1,
+        },
+      ],
+    };
+    
+    const options = {
+      responsive: true,
+      plugins: {
+        legend: {
+          position: 'top',
+        },
+        title: {
+          display: true,
+          text: 'Least 5 Selling Stores',
+        },
+      },
+    };
+    
+    return <Bar data={data} options={options} />;
+  };
+  
   const processHolidayImpact = (headers, dataRows) => {
     const holidayIndex = headers.indexOf('Holiday_Flag');
     const salesIndex = headers.indexOf('Weekly_Sales');
@@ -722,7 +792,8 @@ const VisualizationPage = () => {
             </Box>
             
             <Box sx={{ 
-              height: 400, 
+              minHeight: '200px',
+              flexGrow: 1,
               p: 1, 
               borderRadius: 2, 
               bgcolor: 'background.paper', 
@@ -757,7 +828,7 @@ const VisualizationPage = () => {
           </ModernCard>
           
           <Grid container spacing={3}>
-            <Grid item xs={12} md={6}>
+            <Grid item xs={12}>
               <ModernCard glowColor="pink">
                 <Typography variant="h5" fontWeight={600} gutterBottom>
                   Temperature Impact on Sales
@@ -766,7 +837,10 @@ const VisualizationPage = () => {
                   Relationship between temperature and weekly sales performance.
                 </Typography>
                 
-                <Box sx={{ height: 300 }}>
+                <Box sx={{ 
+                  minHeight: '200px',
+                  flexGrow: 1
+                }}>
                   {renderTemperatureChart() || (
                     <Box sx={{ 
                       display: 'flex', 
@@ -785,27 +859,61 @@ const VisualizationPage = () => {
               </ModernCard>
             </Grid>
             
-            <Grid item xs={12} md={6}>
-              <ModernCard glowColor="green">
+            <Grid item xs={12}>
+              <ModernCard glowColor="blue">
                 <Typography variant="h5" fontWeight={600} gutterBottom>
-                  Economic Factor Analysis
+                  Top 10 Selling Stores
                 </Typography>
                 <Typography variant="body2" color="text.secondary" paragraph>
-                  Impact of CPI, unemployment rate, and fuel prices on sales performance.
+                  Walmart stores with highest average weekly sales performance.
                 </Typography>
                 
-                <Box sx={{ height: 300 }}>
-                  {renderEconomicFactorsChart() || (
+                <Box sx={{ 
+                  minHeight: '200px',
+                  flexGrow: 1
+                }}>
+                  {renderTopSellingStoresChart() || (
                     <Box sx={{ 
                       display: 'flex', 
                       alignItems: 'center', 
                       justifyContent: 'center',
                       height: '100%',
-                      bgcolor: 'rgba(54, 215, 183, 0.1)',
+                      bgcolor: 'rgba(77, 105, 250, 0.1)',
                       borderRadius: 2
                     }}>
                       <Typography color="text.secondary">
-                        Economic factors data not available
+                        Store sales data not available
+                      </Typography>
+                    </Box>
+                  )}
+                </Box>
+              </ModernCard>
+            </Grid>
+            
+            <Grid item xs={12}>
+              <ModernCard glowColor="purple">
+                <Typography variant="h5" fontWeight={600} gutterBottom>
+                  Least 5 Selling Stores
+                </Typography>
+                <Typography variant="body2" color="text.secondary" paragraph>
+                  Walmart stores with lowest average weekly sales performance.
+                </Typography>
+                
+                <Box sx={{ 
+                  minHeight: '200px',
+                  flexGrow: 1
+                }}>
+                  {renderLeastSellingStoresChart() || (
+                    <Box sx={{ 
+                      display: 'flex', 
+                      alignItems: 'center', 
+                      justifyContent: 'center',
+                      height: '100%',
+                      bgcolor: 'rgba(255, 110, 134, 0.1)',
+                      borderRadius: 2
+                    }}>
+                      <Typography color="text.secondary">
+                        Store sales data not available
                       </Typography>
                     </Box>
                   )}
