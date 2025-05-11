@@ -127,7 +127,7 @@ def preprocess_sales_data(df: pd.DataFrame) -> pd.DataFrame:
     
     return df
 
-def scale_features(df: pd.DataFrame) -> pd.DataFrame:
+def scale_features(df: pd.DataFrame) -> tuple[pd.DataFrame, StandardScaler]:
     logger.info("Scaling numerical features")
     
     # Create a copy to avoid modifying the original
@@ -135,19 +135,20 @@ def scale_features(df: pd.DataFrame) -> pd.DataFrame:
     # Select only numerical columns for scaling
     nf = df_scaled.select_dtypes(include=np.number).columns.tolist()
     
+    scaler = StandardScaler() # Initialize scaler outside the try-except block
+
     if not nf:
-        logger.warning("No numerical features found to scale.")
-        return df_scaled # Return the original DataFrame if no numeric columns
+        logger.warning("No numerical features found to scale. Returning original DataFrame and an unfitted scaler.")
+        return df_scaled, scaler # Return the original DataFrame and the unfitted scaler
 
     try:
-        # Initialize scaler
-        scaler = StandardScaler()
-        
         # Fit and transform the specified columns
         df_scaled[nf] = scaler.fit_transform(df_scaled[nf])
         logger.info(f"Successfully scaled {len(nf)} features: {nf}")
         
-        return df_scaled
+        return df_scaled, scaler # Return the scaled DataFrame and the fitted scaler
     except Exception as e:
         logger.error(f"Error in feature scaling: {str(e)}")
-        return df # Return original dataframe in case of error during scaling
+        logger.warning("Returning original DataFrame and a new unfitted scaler due to error during scaling.")
+        # Return original dataframe and a new, unfitted scaler in case of error
+        return df, StandardScaler()
