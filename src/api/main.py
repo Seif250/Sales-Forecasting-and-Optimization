@@ -428,21 +428,42 @@ async def visualize_data(file: UploadFile = File(...)):
 
                 if df['Date'].notna().any():
                      logger.info("'Date' column converted to datetime for visualization aggregations.")
-                else:
-                    logger.warning("'Date' column exists but could not be converted to datetime for all values for visualization.")
+                else:                logger.warning("'Date' column exists but could not be converted to datetime for all values for visualization.")
             except Exception as e:
-                logger.warning(f"Could not convert 'Date' column to datetime for visualization: {e}. Time-based aggregations might be affected.")          # Preprocess a copy of the data for statistics        df_for_stats = df.copy()
+                logger.warning(f"Could not convert 'Date' column to datetime for visualization: {e}. Time-based aggregations might be affected.")
+        
+        # Preprocess a copy of the data for statistics
+        df_for_stats = df.copy()
         df_proc = preprocess_sales_data(df_for_stats) # preprocess_sales_data handles its own date parsing if 'Date' is present
+        
+        # Check if Weekly_Sales exists in the input and handle appropriately
+        has_weekly_sales = 'Weekly_Sales' in df_proc.columns
+        if has_weekly_sales:
+            logger.info("Visualization data contains 'Weekly_Sales' column - this will be preserved separately during scaling")
+            # Preserve it before scaling
+            weekly_sales_original = df_proc['Weekly_Sales'].copy()
+            # Remove from DataFrame that will be scaled to avoid scaler errors
+            df_proc_for_scaling = df_proc.drop('Weekly_Sales', axis=1)
+        else:
+            df_proc_for_scaling = df_proc.copy()
         
         # Scale features with the loaded scaler if available, otherwise fit a new one
         if loaded_scaler is not None:
             try:
-                df_proc, _ = scale_features(df_proc, loaded_scaler) # Use the loaded scaler (transform only)
+                df_proc_scaled, _ = scale_features(df_proc_for_scaling, loaded_scaler) # Use the loaded scaler (transform only)
                 logger.info("Statistics visualization: Successfully scaled features using pre-trained scaler")
+                
+                # Add back Weekly_Sales if it existed
+                if has_weekly_sales:
+                    df_proc_scaled['Weekly_Sales'] = weekly_sales_original
+                    logger.info("Added 'Weekly_Sales' back to scaled data for visualization")
+                
+                # Update df_proc to use the scaled version
+                df_proc = df_proc_scaled
             except Exception as e:
                 logger.error(f"Statistics visualization: Error using pre-trained scaler: {str(e)}")
                 # In case of error with loaded scaler, fit a new one
-                df_proc, scaler = scale_features(df_proc) # Fallback to creating a new scaler
+                df_proc, scaler = scale_features(df_proc) # Fallback to creating a new scaler (original implementation)
         else:
             # No scaler loaded - fit a new one for this data
             df_proc, scaler = scale_features(df_proc) # Scale features and get the scaler
