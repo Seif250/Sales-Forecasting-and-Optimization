@@ -33,10 +33,10 @@ const DocumentationPage = () => {
   
   // Documentation sections content
   const introContent = `
-# Introduction to Predixio
+# Introduction to Predix
 
 ## Overview of our platform and capabilities
-Predixio is a state-of-the-art platform designed to analyze and predict retail sales patterns using advanced AI algorithms. Our system can process historical sales data, identify patterns, and provide accurate forecasts to help optimize inventory management and business operations.
+Predix is a state-of-the-art platform designed to analyze and predict retail sales patterns using advanced AI algorithms. Our system can process historical sales data, identify patterns, and provide accurate forecasts to help optimize inventory management and business operations.
 
 Built on the Walmart sales dataset, our platform leverages machine learning techniques to analyze and visualize sales patterns across multiple stores and departments.
   `;
@@ -45,7 +45,7 @@ Built on the Walmart sales dataset, our platform leverages machine learning tech
 # Dataset
 
 ## Information about the underlying data powering our platform
-Predixio is powered by the Walmart sales dataset, which contains historical sales data across diverse store locations and departments. This comprehensive dataset enables our models to understand sales patterns in different retail contexts.
+Predix is powered by the Walmart sales dataset, which contains historical sales data across diverse store locations and departments. This comprehensive dataset enables our models to understand sales patterns in different retail contexts.
 
 The dataset includes:
 - Weekly sales data from various store locations
@@ -158,7 +158,7 @@ Content-Type: multipart/form-data`,
 
 ## Technical details of our AI models
 
-Predixio employs multiple machine learning models to deliver accurate sales forecasts:
+Predix employs multiple machine learning models to deliver accurate sales forecasts:
 
 ### Linear Regression
 Our baseline model provides fundamental trend analysis and serves as a benchmark for our more complex models.
@@ -191,7 +191,7 @@ Our models are trained to identify meaningful patterns in sales data while being
   const usageContent = `
 # Using the Analysis Platform
 
-## How to interact with Predixio
+## How to interact with Predix
 
 You can analyze sales data through our interface by:
 
@@ -330,11 +330,11 @@ fetch(apiUrl, {
         return (
           <>
             <Typography variant="h5" fontWeight={600} gutterBottom>
-              Introduction to Predixio
+              Introduction to Predix
             </Typography>
             <Typography variant="h6" gutterBottom sx={{ mt: 3 }}>Overview of our platform and capabilities</Typography>
             <Typography variant="body1" paragraph>
-              Predixio is a state-of-the-art platform designed to analyze and predict retail sales patterns using advanced AI algorithms. 
+              Predix is a state-of-the-art platform designed to analyze and predict retail sales patterns using advanced AI algorithms. 
               Our system can process historical sales data, identify patterns, and provide accurate forecasts to help optimize inventory 
               management and business operations.
             </Typography>
@@ -558,7 +558,7 @@ fetch(apiUrl, {
           <>
             <Typography variant="h5" gutterBottom fontWeight={600}>Model Architecture</Typography>
             <Typography variant="body1" paragraph>
-              Predixio employs multiple machine learning models to provide accurate sales forecasts.
+              Predix employs multiple machine learning models to provide accurate sales forecasts.
             </Typography>
             
             <Typography variant="h6" gutterBottom sx={{ mt: 3 }}>Linear Regression</Typography>
@@ -930,7 +930,7 @@ fetch(apiUrl, {
               
               <TabPanel value={tabValue} index={0}>
                 <Typography variant="body1" paragraph>
-                  Welcome to the Predixio documentation. Here you will find comprehensive guides and documentation to help you
+                  Welcome to the Predix documentation. Here you will find comprehensive guides and documentation to help you
                   understand and use our platform effectively. Our documentation is organized into several key sections.
                 </Typography>
                 
@@ -1019,7 +1019,7 @@ fetch(apiUrl, {
                       {section.title}
                     </Typography>
                       <Typography variant="body2" color="text.secondary" paragraph sx={{ mb: 2, flexGrow: 1 }}>
-                      {section.id === 'introduction' && "Learn about the Predixio platform and its sales forecasting capabilities."}
+                      {section.id === 'introduction' && "Learn about the Predix platform and its sales forecasting capabilities."}
                       {section.id === 'dataset' && "Understand the Walmart sales dataset powering our forecasting system."}
                       {section.id === 'preprocessing' && "Explore our data preprocessing pipeline for sales data."}
                       {section.id === 'model-architecture' && "Learn about our AI model architecture and prediction capabilities."}
