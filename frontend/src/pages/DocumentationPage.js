@@ -30,396 +30,836 @@ const DocumentationPage = () => {
   const handleTabChange = (event, newValue) => {
     setTabValue(newValue);
   };
+  
+  // Documentation sections content
+  const introContent = `
+# Introduction to Predixio
 
-  // Sample API documentation
+## Overview of our platform and capabilities
+Predixio is a state-of-the-art platform designed to analyze and predict retail sales patterns using advanced AI algorithms. Our system can process historical sales data, identify patterns, and provide accurate forecasts to help optimize inventory management and business operations.
+
+Built on the Walmart sales dataset, our platform leverages machine learning techniques to analyze and visualize sales patterns across multiple stores and departments.
+  `;
+
+  const datasetContent = `
+# Dataset
+
+## Information about the underlying data powering our platform
+Predixio is powered by the Walmart sales dataset, which contains historical sales data across diverse store locations and departments. This comprehensive dataset enables our models to understand sales patterns in different retail contexts.
+
+The dataset includes:
+- Weekly sales data from various store locations
+- Store-specific features (size, type)
+- External factors (temperature, fuel price, CPI, unemployment)
+- Holiday and promotional markdown information
+  `;
+
+  const preprocessingContent = `
+# Data Preprocessing Pipeline
+
+## How we prepare sales data for analysis
+Our platform implements a robust preprocessing pipeline to ensure high-quality data analysis:
+
+### Date Feature Extraction
+We transform date information into useful features that capture seasonal patterns.
+
+### Categorical Encoding
+For each store and department, we apply binary encoding to effectively capture categorical information.
+
+### Statistical Feature Generation
+We identify correlations between external factors and sales performance to generate informative features.
+
+### Outlier Handling
+Our preprocessing pipeline identifies and addresses anomalous data points to ensure model robustness.
+
+### Normalization
+All numerical features are normalized to improve model convergence and performance.
+
+### Missing Value Imputation
+We employ strategic imputation techniques to handle missing values in the dataset.
+  `;
+
   const apiEndpoints = [
     {
-      name: 'Predict Sales',
+      name: '/api/predict_json',
       method: 'POST',
-      endpoint: '/api/predict',
-      description: 'Get sales forecast based on input parameters',
+      description: 'Submit data for prediction in JSON format',
       requestExample: `{
-  "store_id": 1,
-  "dept_id": 5,
-  "temperature": 75.5,
-  "fuel_price": 3.45,
-  "markdown1": 0,
-  "markdown2": 10.5,
-  "markdown3": 0,
-  "markdown4": 0,
-  "markdown5": 0,
-  "cpi": 225.38,
-  "unemployment": 7.5,
-  "isHoliday": true
+  "data": {
+    "Store": 1,
+    "Temperature": 73.5,
+    "Fuel_Price": 3.25,
+    "CPI": 138.2,
+    "Unemployment": 8.1,
+    "Holiday_Flag": 0,
+    "weekday": 5,
+    "month": 7,
+    "year": 2023
+  },
+  "model_name": "xgboost"  // Optional, defaults to 'xgboost'
 }`,
       responseExample: `{
-  "prediction": 3245.78,
-  "confidence_interval": [3100.45, 3390.23],
-  "status": "success"
+  "predictions": [45678.90],  // Predicted sales value
+  "model": "xgboost",
+  "confidence_interval": [42390.15, 48967.65],
+  "success": true,
+  "processing_time_ms": 125
 }`
     },
     {
-      name: 'Batch Prediction',
+      name: '/api/predict_csv',
       method: 'POST',
-      endpoint: '/api/batch-predict',
-      description: 'Submit a CSV file for batch prediction',
+      description: 'Upload a CSV file for batch predictions',
       requestExample: `// Form data with 'file' field containing the CSV file
 Content-Type: multipart/form-data`,
       responseExample: `{
-  "job_id": "job-12345",
-  "status": "processing",
-  "estimated_completion_time": "2023-06-15T15:30:00Z"
+  "predictions": {
+    "linear_regression": [45678.90, 23456.78, ...],
+    "xgboost": [46789.01, 24567.89, ...],
+    "ensemble": [46123.45, 24012.34, ...]
+  },
+  "rows_processed": 100,
+  "success": true,
+  "processing_time_ms": 1250
 }`
     },
     {
-      name: 'Get Batch Results',
-      method: 'GET',
-      endpoint: '/api/batch-results/{job_id}',
-      description: 'Retrieve the results of a batch prediction job',
-      requestExample: `// No request body needed`,
+      name: '/api/visualize_data',
+      method: 'POST',
+      description: 'Submit a CSV file to get preprocessed data and visualizations',
+      requestExample: `// Form data with 'file' field containing the CSV file
+Content-Type: multipart/form-data`,
       responseExample: `{
-  "status": "completed",
-  "results": [
-    { "row_id": 1, "store_id": 1, "dept_id": 5, "prediction": 3245.78 },
-    { "row_id": 2, "store_id": 1, "dept_id": 6, "prediction": 2178.45 }
-  ],
-  "download_url": "/api/download/results-12345.csv"
+  "preprocessed_data": {
+    "columns": ["Store", "Dept", "Date", "Weekly_Sales", ...],
+    "rows": 1000,
+    "statistics": {
+      "Weekly_Sales": {
+        "min": 1234.56, 
+        "max": 98765.43, 
+        "mean": 45678.90
+      },
+      // Statistics for other numerical columns
+    }
+  },
+  "visualizations": {
+    "store_performance": [...],
+    "time_trend": [...],
+    "department_sales": [...]
+  },
+  "success": true,
+  "message": "Data visualization processed successfully."
 }`
     }
   ];
+
+  const modelArchContent = `
+# Model Architecture
+
+## Technical details of our AI models
+
+Predixio employs multiple machine learning models to deliver accurate sales forecasts:
+
+### Linear Regression
+Our baseline model provides fundamental trend analysis and serves as a benchmark for our more complex models.
+
+Features:
+- Interpretable coefficients for feature importance analysis
+- Fast training and prediction times
+- Effective for understanding basic sales relationships
+
+### XGBoost
+Our advanced model captures complex non-linear relationships in the data.
+
+Features:
+- Gradient boosting framework for enhanced accuracy
+- Handles non-linear feature interactions
+- Robust to outliers and missing values
+- Advanced feature importance metrics
+
+### Feature Engineering Pipeline
+Both models leverage our sophisticated feature engineering pipeline:
+
+- Date-based features (month, weekday, year)
+- Binary-encoded categorical variables
+- Standardized numerical features
+- Holiday and promotion indicators
+
+Our models are trained to identify meaningful patterns in sales data while being robust to seasonal variations and external economic factors.
+  `;
+  
+  const usageContent = `
+# Using the Analysis Platform
+
+## How to interact with Predixio
+
+You can analyze sales data through our interface by:
+
+1. **Data Uploading**
+   - Upload new sales data in CSV format
+   - Select models for prediction (Linear Regression, XGBoost)
+
+2. **Visualization Exploration**
+   - Explore sales trends across different stores and time periods
+   - Analyze the impact of external factors like weather and economic indicators
+   - Identify seasonal patterns and holiday effects
+
+3. **Sales Forecasting**
+   - Generate predictions for future sales periods
+   - Compare predictions from different models
+   - Export results for further analysis or reporting
+
+The platform processes your input data through our preprocessing pipeline and applies our pre-trained models to provide accurate sales forecasts.
+  `;
+  
+  const usageContent2 = `
+Additional information about using the platform and processing your data through our pipeline.
+  `;
+  
+  const apiRefContent = `
+# API Reference
+
+## Technical details for developers
+
+Our platform provides the following API endpoints:
+
+* **/api/predict_json (POST)**: Submit individual data points for prediction
+* **/api/predict_csv (POST)**: Upload CSV files for batch prediction
+* **/api/visualize_data (POST)**: Get data visualizations and statistics
+
+For detailed API documentation, including request and response formats, please refer to our developer guide or contact our development team.
+  `;
 
   // Usage examples
   const pythonExample = `import requests
 import json
 
 # Define the API endpoint
-url = "https://your-sales-forecasting-api.com/api/predict"
+url = "http://localhost:8000/api/predict_json"
 
 # Prepare the data
 data = {
-    "store_id": 1,
-    "dept_id": 5,
-    "temperature": 75.5,
-    "fuel_price": 3.45,
-    "markdown1": 0,
-    "markdown2": 10.5,
-    "markdown3": 0,
-    "markdown4": 0,
-    "markdown5": 0,
-    "cpi": 225.38,
-    "unemployment": 7.5,
-    "isHoliday": True
+    "data": [{
+        "store_id": 1,
+        "dept_id": 5,
+        "temperature": 75.5,
+        "fuel_price": 3.25,
+        "cpi": 138.2,
+        "unemployment": 8.1,
+        "holiday_flag": 0,
+        "weekday": 5,
+        "month": 7,
+        "year": 2023
+    }],
+    "model_name": "xgboost"
 }
 
 # Send the request
-response = requests.post(url, json=data)
+response = requests.post(
+    url,
+    data=json.dumps(data),
+    headers={"Content-Type": "application/json"}
+)
 
-# Process the response
+# Parse the response
 if response.status_code == 200:
     result = response.json()
-    print(f"Predicted sales: {result['prediction']}")
-    print(f"Confidence interval: {result['confidence_interval']}")
+    print(f"Predicted sales: {result['predictions'][0]}")
 else:
-    print(f"Error: {response.status_code}")
-    print(response.text)`;
+    print(f"Error: {response.status_code} - {response.text}")`;
 
-  const javascriptExample = `// Using fetch API
-const apiUrl = 'https://your-sales-forecasting-api.com/api/predict';
+  const jsExample = `// JavaScript Fetch API Example
+const apiUrl = 'http://localhost:8000/api/predict_json';
 
 const data = {
-  store_id: 1,
-  dept_id: 5,
-  temperature: 75.5,
-  fuel_price: 3.45,
-  markdown1: 0,
-  markdown2: 10.5,
-  markdown3: 0,
-  markdown4: 0,
-  markdown5: 0,
-  cpi: 225.38,
-  unemployment: 7.5,
-  isHoliday: true
+  data: [{
+    store_id: 1,
+    dept_id: 5,
+    temperature: 75.5,
+    fuel_price: 3.25,
+    cpi: 138.2,
+    unemployment: 8.1,
+    holiday_flag: 0,
+    weekday: 5,
+    month: 7,
+    year: 2023
+  }],
+  model_name: 'xgboost'
 };
 
 fetch(apiUrl, {
   method: 'POST',
   headers: {
-    'Content-Type': 'application/json',
+    'Content-Type': 'application/json'
   },
-  body: JSON.stringify(data),
+  body: JSON.stringify(data)
 })
   .then(response => response.json())
   .then(result => {
-    console.log('Predicted sales:', result.prediction);
-    console.log('Confidence interval:', result.confidence_interval);
+    console.log(\`Predicted sales: \${result.predictions[0]}\`);
   })
   .catch(error => {
     console.error('Error:', error);
   });`;
 
+  // TabPanel component for documentation tabs
   const TabPanel = ({ children, value, index }) => {
     return (
       <div role="tabpanel" hidden={value !== index}>
         {value === index && (
           <Box sx={{ p: 3 }}>
-            <Typography>{children}</Typography>
+            {children}
           </Box>
         )}
       </div>
     );
   };
-
+  
   const sections = [
-    { id: 'getting-started', title: 'Getting Started', icon: <DescriptionIcon fontSize="small" /> },
-    { id: 'api-reference', title: 'API Reference', icon: <ApiIcon fontSize="small" /> },
-    { id: 'model-details', title: 'Model Details', icon: <CodeIcon fontSize="small" /> },
-    { id: 'csv-format', title: 'CSV Format', icon: <ArticleIcon fontSize="small" /> },
-    { id: 'faq', title: 'FAQs', icon: <HelpOutlineIcon fontSize="small" /> }
+    { id: 'introduction', title: 'Introduction', icon: <DescriptionIcon fontSize="small" /> },
+    { id: 'dataset', title: 'Dataset', icon: <TableChartIcon fontSize="small" /> },
+    { id: 'preprocessing', title: 'Data Preprocessing', icon: <DataObjectIcon fontSize="small" /> },
+    { id: 'model-architecture', title: 'Model Architecture', icon: <CodeIcon fontSize="small" /> },
+    { id: 'usage', title: 'Using the Platform', icon: <ArticleIcon fontSize="small" /> },
+    { id: 'api-reference', title: 'API Reference', icon: <ApiIcon fontSize="small" /> }
   ];
-
+  
   const getSectionContent = (sectionId) => {
     switch (sectionId) {
-      case 'getting-started':
+      case 'introduction':
         return (
           <>
             <Typography variant="h5" fontWeight={600} gutterBottom>
-              Getting Started with Predixio
+              Introduction to Predixio
+            </Typography>
+            <Typography variant="h6" gutterBottom sx={{ mt: 3 }}>Overview of our platform and capabilities</Typography>
+            <Typography variant="body1" paragraph>
+              Predixio is a state-of-the-art platform designed to analyze and predict retail sales patterns using advanced AI algorithms. 
+              Our system can process historical sales data, identify patterns, and provide accurate forecasts to help optimize inventory 
+              management and business operations.
             </Typography>
             <Typography variant="body1" paragraph>
-              The Sales Forecasting and Optimization system uses advanced machine learning algorithms to predict future sales 
-              based on historical data and various features such as store details, economic indicators, weather, and promotions.
+              Built on the Walmart sales dataset, our platform leverages machine learning techniques to analyze and visualize 
+              sales patterns across multiple stores and departments.
             </Typography>
             
             <Typography variant="h6" gutterBottom sx={{ mt: 3 }}>Key Features:</Typography>
             <List>
               <ListItem>
                 <ListItemIcon>
-                  <Chip label="1" color="primary" size="small" />
+                  <ChevronRightIcon color="primary" />
                 </ListItemIcon>
-                <ListItemText 
-                  primary="Individual Store Predictions" 
-                  secondary="Get sales forecasts for specific stores and departments" 
-                />
+                <ListItemText primary="Advanced Sales Forecasting with AI" secondary="Predict future sales with high accuracy" />
               </ListItem>
               <ListItem>
                 <ListItemIcon>
-                  <Chip label="2" color="primary" size="small" />
+                  <ChevronRightIcon color="primary" />
                 </ListItemIcon>
-                <ListItemText 
-                  primary="Batch Processing" 
-                  secondary="Upload CSV files for bulk prediction operations" 
-                />
+                <ListItemText primary="Data Visualization Tools" secondary="Explore sales trends and patterns visually" />
               </ListItem>
               <ListItem>
                 <ListItemIcon>
-                  <Chip label="3" color="primary" size="small" />
+                  <ChevronRightIcon color="primary" />
                 </ListItemIcon>
-                <ListItemText 
-                  primary="Data Visualization" 
-                  secondary="Interactive charts and graphs for better insights" 
-                />
+                <ListItemText primary="API Integration" secondary="Connect our prediction capabilities to your existing systems" />
               </ListItem>
               <ListItem>
                 <ListItemIcon>
-                  <Chip label="4" color="primary" size="small" />
+                  <ChevronRightIcon color="primary" />
                 </ListItemIcon>
-                <ListItemText 
-                  primary="API Integration" 
-                  secondary="Easy integration with your existing systems" 
-                />
+                <ListItemText primary="Multiple Model Support" secondary="Choose from linear regression or XGBoost models" />
               </ListItem>
             </List>
-
-            <Typography variant="h6" gutterBottom sx={{ mt: 3 }}>How It Works:</Typography>
+            
+            <Typography variant="h6" gutterBottom sx={{ mt: 3 }}>Benefits for Retailers:</Typography>
             <Typography variant="body1" paragraph>
-              Our system uses an ensemble of machine learning models including XGBoost, trained on historical sales data.
-              The models take into account numerous factors such as holidays, promotions, economic indicators, and local events
-              to provide accurate sales forecasts.
+              By accurately forecasting sales, retailers can optimize their inventory management, staffing, and marketing strategies,
+              leading to reduced costs and improved customer satisfaction. Our platform helps businesses make data-driven decisions
+              that adapt to changing market conditions.
             </Typography>
           </>
         );
+      case 'dataset':
+        return (
+          <>
+            <Typography variant="h5" gutterBottom fontWeight={600}>Dataset</Typography>
+            <Typography variant="h6" gutterBottom sx={{ mt: 3 }}>Information about the underlying data</Typography>
+            <Typography variant="body1" paragraph>
+              Our platform is powered by the Walmart sales dataset, which contains rich historical sales data across multiple store locations and departments.
+            </Typography>
+            <Typography variant="body1" paragraph>
+              The dataset includes:
+            </Typography>
+            <List>
+              <ListItem>
+                <ListItemIcon>
+                  <ChevronRightIcon color="primary" />
+                </ListItemIcon>
+                <ListItemText primary="Weekly sales data from various store locations" />
+              </ListItem>
+              <ListItem>
+                <ListItemIcon>
+                  <ChevronRightIcon color="primary" />
+                </ListItemIcon>
+                <ListItemText primary="Store-specific features (size, type)" />
+              </ListItem>
+              <ListItem>
+                <ListItemIcon>
+                  <ChevronRightIcon color="primary" />
+                </ListItemIcon>
+                <ListItemText primary="External factors (temperature, fuel price, CPI, unemployment)" />
+              </ListItem>
+              <ListItem>
+                <ListItemIcon>
+                  <ChevronRightIcon color="primary" />
+                </ListItemIcon>
+                <ListItemText primary="Holiday and promotional markdown information" />
+              </ListItem>
+            </List>
+            
+            <Typography variant="h6" gutterBottom sx={{ mt: 3 }}>Data Sources</Typography>
+            <Typography variant="body1" paragraph>
+              The primary dataset is based on historical Walmart sales data, supplemented with:
+            </Typography>
+            <List>
+              <ListItem>
+                <ListItemIcon>
+                  <ChevronRightIcon color="primary" />
+                </ListItemIcon>
+                <ListItemText primary="Economic indicators from reliable government sources" />
+              </ListItem>
+              <ListItem>
+                <ListItemIcon>
+                  <ChevronRightIcon color="primary" />
+                </ListItemIcon>
+                <ListItemText primary="Weather data from meteorological databases" />
+              </ListItem>
+              <ListItem>
+                <ListItemIcon>
+                  <ChevronRightIcon color="primary" />
+                </ListItemIcon>
+                <ListItemText primary="Calendar information for holiday identification" />
+              </ListItem>
+            </List>
+            
+            <Typography variant="h6" gutterBottom sx={{ mt: 3 }}>Data Structure</Typography>
+            <Box sx={{ mb: 3 }}>
+              <SyntaxHighlighter language="javascript" style={docco}>
+{`// Sample data structure
+{
+  "Store": 1,                   // Store identifier
+  "Dept": 1,                    // Department number
+  "Date": "2010-02-05",         // Sales date
+  "Weekly_Sales": 24924.50,     // Target variable (what we predict)
+  "IsHoliday": true,            // Whether the week is a holiday week
+  "Temperature": 67.87,         // Average temperature
+  "Fuel_Price": 2.47,           // Cost of fuel
+  "CPI": 211.08,                // Consumer price index
+  "Unemployment": 8.10,         // Unemployment rate
+  "Type": "A",                  // Store type
+  "Size": 151315                // Store size
+}`}
+              </SyntaxHighlighter>
+            </Box>
+          </>
+        );
+      case 'preprocessing':
+        return (
+          <>
+            <Typography variant="h5" gutterBottom fontWeight={600}>Data Preprocessing</Typography>
+            <Typography variant="body1" paragraph>
+              Our platform implements a robust preprocessing pipeline to ensure high-quality data analysis and modeling.
+            </Typography>
+            
+            <Typography variant="h6" gutterBottom sx={{ mt: 3 }}>Date Feature Extraction</Typography>
+            <Typography variant="body1" paragraph>
+              We transform date information into useful features that capture seasonal patterns:
+            </Typography>
+            <List>
+              <ListItem>
+                <ListItemIcon>
+                  <ChevronRightIcon color="primary" />
+                </ListItemIcon>
+                <ListItemText primary="Day of week (encoded as categorical variable)" />
+              </ListItem>
+              <ListItem>
+                <ListItemIcon>
+                  <ChevronRightIcon color="primary" />
+                </ListItemIcon>
+                <ListItemText primary="Month (to capture monthly seasonality)" />
+              </ListItem>
+              <ListItem>
+                <ListItemIcon>
+                  <ChevronRightIcon color="primary" />
+                </ListItemIcon>
+                <ListItemText primary="Year (to capture long-term trends)" />
+              </ListItem>
+              <ListItem>
+                <ListItemIcon>
+                  <ChevronRightIcon color="primary" />
+                </ListItemIcon>
+                <ListItemText primary="Week of year (to capture seasonal patterns)" />
+              </ListItem>
+            </List>
+            
+            <Typography variant="h6" gutterBottom sx={{ mt: 3 }}>Categorical Encoding</Typography>
+            <Typography variant="body1" paragraph>
+              For each store and department, we apply binary encoding to effectively capture categorical information.
+              Store types are one-hot encoded to allow the model to learn store-specific patterns.
+            </Typography>
+            
+            <Typography variant="h6" gutterBottom sx={{ mt: 3 }}>Statistical Feature Generation</Typography>
+            <Typography variant="body1" paragraph>
+              We identify correlations between external factors and sales performance to generate informative features:
+            </Typography>
+            <List>
+              <ListItem>
+                <ListItemIcon>
+                  <ChevronRightIcon color="primary" />
+                </ListItemIcon>
+                <ListItemText primary="Rolling averages for sales (7-day, 14-day, 28-day)" />
+              </ListItem>
+              <ListItem>
+                <ListItemIcon>
+                  <ChevronRightIcon color="primary" />
+                </ListItemIcon>
+                <ListItemText primary="Lag features to capture time dependencies" />
+              </ListItem>
+              <ListItem>
+                <ListItemIcon>
+                  <ChevronRightIcon color="primary" />
+                </ListItemIcon>
+                <ListItemText primary="Interaction features between temperature and holidays" />
+              </ListItem>
+            </List>
+            
+            <Typography variant="h6" gutterBottom sx={{ mt: 3 }}>Outlier Handling</Typography>
+            <Typography variant="body1" paragraph>
+              Our preprocessing pipeline identifies and addresses anomalous data points to ensure model robustness:
+            </Typography>
+            <List>
+              <ListItem>
+                <ListItemIcon>
+                  <ChevronRightIcon color="primary" />
+                </ListItemIcon>
+                <ListItemText primary="Z-score based outlier detection" />
+              </ListItem>
+              <ListItem>
+                <ListItemIcon>
+                  <ChevronRightIcon color="primary" />
+                </ListItemIcon>
+                <ListItemText primary="Capping extreme values at 99th percentile" />
+              </ListItem>
+            </List>
+          </>
+        );
+      case 'model-architecture':
+        return (
+          <>
+            <Typography variant="h5" gutterBottom fontWeight={600}>Model Architecture</Typography>
+            <Typography variant="body1" paragraph>
+              Predixio employs multiple machine learning models to provide accurate sales forecasts.
+            </Typography>
+            
+            <Typography variant="h6" gutterBottom sx={{ mt: 3 }}>Linear Regression</Typography>
+            <Typography variant="body1" paragraph>
+              Our baseline model provides fundamental trend analysis and serves as a benchmark for our more complex models.
+            </Typography>
+            <Typography variant="body2" sx={{ fontWeight: 600, color: 'text.secondary', mb: 1 }}>Features:</Typography>
+            <List dense>
+              <ListItem>
+                <ListItemIcon>
+                  <ChevronRightIcon fontSize="small" color="primary" />
+                </ListItemIcon>
+                <ListItemText primary="Interpretable coefficients for feature importance analysis" />
+              </ListItem>
+              <ListItem>
+                <ListItemIcon>
+                  <ChevronRightIcon fontSize="small" color="primary" />
+                </ListItemIcon>
+                <ListItemText primary="Fast training and prediction times" />
+              </ListItem>
+              <ListItem>
+                <ListItemIcon>
+                  <ChevronRightIcon fontSize="small" color="primary" />
+                </ListItemIcon>
+                <ListItemText primary="Effective for understanding basic sales relationships" />
+              </ListItem>
+            </List>
+            
+            <Typography variant="h6" gutterBottom sx={{ mt: 3 }}>XGBoost</Typography>
+            <Typography variant="body1" paragraph>
+              Our advanced model captures complex non-linear relationships in the data.
+            </Typography>
+            <Typography variant="body2" sx={{ fontWeight: 600, color: 'text.secondary', mb: 1 }}>Features:</Typography>
+            <List dense>
+              <ListItem>
+                <ListItemIcon>
+                  <ChevronRightIcon fontSize="small" color="primary" />
+                </ListItemIcon>
+                <ListItemText primary="Gradient boosting framework for enhanced accuracy" />
+              </ListItem>
+              <ListItem>
+                <ListItemIcon>
+                  <ChevronRightIcon fontSize="small" color="primary" />
+                </ListItemIcon>
+                <ListItemText primary="Handles non-linear feature interactions" />
+              </ListItem>
+              <ListItem>
+                <ListItemIcon>
+                  <ChevronRightIcon fontSize="small" color="primary" />
+                </ListItemIcon>
+                <ListItemText primary="Robust to outliers and missing values" />
+              </ListItem>
+              <ListItem>
+                <ListItemIcon>
+                  <ChevronRightIcon fontSize="small" color="primary" />
+                </ListItemIcon>
+                <ListItemText primary="Advanced feature importance metrics" />
+              </ListItem>
+            </List>
+            
+            <Box sx={{ mt: 3, mb: 3, p: 2, backgroundColor: 'background.paper', borderRadius: 1 }}>
+              <Typography variant="h6" gutterBottom>Model Parameters</Typography>
+              <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                <thead>
+                  <tr style={{ borderBottom: `1px solid ${theme.palette.divider}` }}>
+                    <th style={{ textAlign: 'left', padding: '10px', fontWeight: 600, color: theme.palette.primary.main }}>Parameter</th>
+                    <th style={{ textAlign: 'left', padding: '10px', fontWeight: 600, color: theme.palette.primary.main }}>Linear Regression</th>
+                    <th style={{ textAlign: 'left', padding: '10px', fontWeight: 600, color: theme.palette.primary.main }}>XGBoost</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td style={{ padding: '10px', border: `1px solid ${theme.palette.divider}` }}>Training Time</td>
+                    <td style={{ padding: '10px', border: `1px solid ${theme.palette.divider}` }}>Fast (seconds)</td>
+                    <td style={{ padding: '10px', border: `1px solid ${theme.palette.divider}` }}>Medium (minutes)</td>
+                  </tr>
+                  <tr>
+                    <td style={{ padding: '10px', border: `1px solid ${theme.palette.divider}` }}>Inference Speed</td>
+                    <td style={{ padding: '10px', border: `1px solid ${theme.palette.divider}` }}>Very fast</td>
+                    <td style={{ padding: '10px', border: `1px solid ${theme.palette.divider}` }}>Fast</td>
+                  </tr>
+                  <tr>
+                    <td style={{ padding: '10px', border: `1px solid ${theme.palette.divider}` }}>Accuracy</td>
+                    <td style={{ padding: '10px', border: `1px solid ${theme.palette.divider}` }}>Moderate (RMSE ~1500)</td>
+                    <td style={{ padding: '10px', border: `1px solid ${theme.palette.divider}` }}>High (RMSE ~950)</td>
+                  </tr>
+                  <tr>
+                    <td style={{ padding: '10px', border: `1px solid ${theme.palette.divider}` }}>Interpretability</td>
+                    <td style={{ padding: '10px', border: `1px solid ${theme.palette.divider}` }}>High</td>
+                    <td style={{ padding: '10px', border: `1px solid ${theme.palette.divider}` }}>Medium</td>
+                  </tr>
+                </tbody>
+              </table>
+            </Box>
+          </>
+        );
+      case 'usage':
+        return (
+          <>
+            <Typography variant="h5" gutterBottom fontWeight={600}>Using the Platform</Typography>
+            <Typography variant="body1" paragraph>
+              You can analyze sales data through our interface by following these steps:
+            </Typography>
+            
+            <Typography variant="h6" gutterBottom sx={{ mt: 3 }}>1. Data Uploading</Typography>
+            <List>
+              <ListItem>
+                <ListItemIcon>
+                  <ChevronRightIcon color="primary" />
+                </ListItemIcon>
+                <ListItemText primary="Upload new sales data in CSV format" secondary="Use the Data Analyzer page to upload your files" />
+              </ListItem>
+              <ListItem>
+                <ListItemIcon>
+                  <ChevronRightIcon color="primary" />
+                </ListItemIcon>
+                <ListItemText primary="Select models for prediction" secondary="Choose between Linear Regression and XGBoost" />
+              </ListItem>
+            </List>
+            
+            <Typography variant="h6" gutterBottom sx={{ mt: 3 }}>2. Visualization Exploration</Typography>
+            <List>
+              <ListItem>
+                <ListItemIcon>
+                  <ChevronRightIcon color="primary" />
+                </ListItemIcon>
+                <ListItemText primary="Explore sales trends across different stores and time periods" />
+              </ListItem>
+              <ListItem>
+                <ListItemIcon>
+                  <ChevronRightIcon color="primary" />
+                </ListItemIcon>
+                <ListItemText primary="Analyze the impact of external factors like weather and economic indicators" />
+              </ListItem>
+              <ListItem>
+                <ListItemIcon>
+                  <ChevronRightIcon color="primary" />
+                </ListItemIcon>
+                <ListItemText primary="Identify seasonal patterns and holiday effects" />
+              </ListItem>
+            </List>
+            
+            <Typography variant="h6" gutterBottom sx={{ mt: 3 }}>3. Sales Forecasting</Typography>
+            <List>
+              <ListItem>
+                <ListItemIcon>
+                  <ChevronRightIcon color="primary" />
+                </ListItemIcon>
+                <ListItemText primary="Generate predictions for future sales periods" />
+              </ListItem>
+              <ListItem>
+                <ListItemIcon>
+                  <ChevronRightIcon color="primary" />
+                </ListItemIcon>
+                <ListItemText primary="Compare predictions from different models" />
+              </ListItem>
+              <ListItem>
+                <ListItemIcon>
+                  <ChevronRightIcon color="primary" />
+                </ListItemIcon>
+                <ListItemText primary="Export results for further analysis or reporting" />
+              </ListItem>
+            </List>
+            
+            <Box sx={{ mt: 3, mb: 3 }}>
+              <Typography variant="h6" gutterBottom>Sample Workflow</Typography>
+              <Typography variant="body2" paragraph sx={{ color: 'text.secondary', fontStyle: 'italic' }}>
+                The platform processes your input data through our preprocessing pipeline and applies our pre-trained models to provide accurate sales forecasts.
+              </Typography>
+              
+              <ol style={{ paddingLeft: '20px' }}>
+                <li>
+                  <Typography variant="body2" sx={{ mb: 1 }}>
+                    Navigate to the <b>Data Analyzer</b> page
+                  </Typography>
+                </li>
+                <li>
+                  <Typography variant="body2" sx={{ mb: 1 }}>
+                    Upload your CSV file containing sales data
+                  </Typography>
+                </li>
+                <li>
+                  <Typography variant="body2" sx={{ mb: 1 }}>
+                    Configure visualization parameters to explore your data
+                  </Typography>
+                </li>
+                <li>
+                  <Typography variant="body2" sx={{ mb: 1 }}>
+                    Select forecast parameters (time period, models to use)
+                  </Typography>
+                </li>
+                <li>
+                  <Typography variant="body2" sx={{ mb: 1 }}>
+                    Generate and review forecasts
+                  </Typography>
+                </li>
+                <li>
+                  <Typography variant="body2" sx={{ mb: 1 }}>
+                    Export results in your preferred format
+                  </Typography>
+                </li>
+              </ol>
+            </Box>
+            
+            <Typography variant="h6" gutterBottom sx={{ mt: 3 }}>Frequently Asked Questions</Typography>
+            <Box sx={{ mt: 2 }}>
+              <Typography variant="h6" gutterBottom sx={{ mt: 3 }}>What file formats are supported?</Typography>
+              <Typography variant="body1" paragraph>
+                Currently, we support CSV files with the required columns for analysis. Please refer to the Dataset section for details on the expected format.
+              </Typography>
+              
+              <Typography variant="h6" gutterBottom sx={{ mt: 3 }}>How accurate are the predictions?</Typography>
+              <Typography variant="body1" paragraph>
+                Our XGBoost model typically achieves RMSE (Root Mean Square Error) values of approximately 950 on test data, which represents high accuracy for retail sales forecasting.
+              </Typography>
+              
+              <Typography variant="h6" gutterBottom sx={{ mt: 3 }}>How long does it take to get results?</Typography>
+              <Typography variant="body1" paragraph>
+                The time it takes to get results depends on the size of the dataset and the complexity of the model.
+                For batch predictions, it can take a few minutes to process a large dataset.
+              </Typography>
+            </Box>          </>
+        );
       case 'api-reference':
         return (
-          <Box sx={{ p: 2 }}>
-            <Typography variant="h5" gutterBottom>API Reference</Typography>
+          <>
+            <Typography variant="h5" gutterBottom fontWeight={600}>API Reference</Typography>
             <Typography variant="body1" paragraph>
-              Our REST API allows you to integrate sales forecasting capabilities into your applications.
-              All endpoints accept and return JSON data (except for file uploads which use multipart/form-data).
+              Our platform provides several API endpoints that allow you to integrate our prediction capabilities with your applications.
             </Typography>
             
             {apiEndpoints.map((endpoint, index) => (
-              <Paper 
-                key={index} 
-                elevation={0} 
-                sx={{ 
-                  p: 2, 
-                  mb: 3, 
-                  border: `1px solid ${theme.palette.divider}`,
-                  borderRadius: 2
-                }}
-              >
-                <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
+              <Box key={index} sx={{ mt: 3, mb: 4 }}>
+                <Box sx={{ 
+                  p: 1, 
+                  borderLeft: `4px solid ${theme.palette.primary.main}`,
+                  backgroundColor: 'background.paper',
+                  display: 'flex',
+                  alignItems: 'center'
+                }}>
                   <Chip 
                     label={endpoint.method} 
-                    color={endpoint.method === 'GET' ? 'info' : 'success'} 
                     size="small" 
-                    sx={{ mr: 1 }}
+                    sx={{ 
+                      backgroundColor: endpoint.method === 'GET' ? '#61affe' : '#49cc90',
+                      color: '#fff',
+                      fontWeight: 'bold',
+                      mr: 2
+                    }} 
                   />
-                  <Typography variant="subtitle1" sx={{ fontWeight: 'bold' }}>
+                  <Typography variant="h6" sx={{ fontFamily: 'monospace', fontWeight: 600 }}>
                     {endpoint.name}
                   </Typography>
                 </Box>
                 
-                <Typography variant="body2" color="text.secondary" paragraph>
+                <Typography variant="body1" sx={{ mt: 1 }} paragraph>
                   {endpoint.description}
                 </Typography>
                 
-                <Typography variant="subtitle2" sx={{ mt: 2, mb: 1 }}>
-                  Endpoint: <code>{endpoint.endpoint}</code>
+                <Typography variant="subtitle2" sx={{ mt: 2, color: 'text.secondary', fontWeight: 600 }}>
+                  Request Example:
                 </Typography>
-                
-                <Grid container spacing={2}>
-                  <Grid item xs={12} md={6}>
-                    <Typography variant="subtitle2" gutterBottom>Request:</Typography>
-                    <SyntaxHighlighter language="json" style={docco} customStyle={{ borderRadius: '4px' }}>
-                      {endpoint.requestExample}
-                    </SyntaxHighlighter>
-                  </Grid>
-                  <Grid item xs={12} md={6}>
-                    <Typography variant="subtitle2" gutterBottom>Response:</Typography>
-                    <SyntaxHighlighter language="json" style={docco} customStyle={{ borderRadius: '4px' }}>
-                      {endpoint.responseExample}
-                    </SyntaxHighlighter>
-                  </Grid>
-                </Grid>
-              </Paper>
-            ))}
-          </Box>
-        );
-      case 'model-details':
-        return (
-          <Box sx={{ p: 2 }}>
-            <Typography variant="h5" gutterBottom>Input Data Reference</Typography>
-            <Typography variant="body1" paragraph>
-              The model requires specific input features to generate accurate predictions.
-              Here's a detailed description of each input parameter:
-            </Typography>
-            
-            <table style={{ width: '100%', borderCollapse: 'collapse', marginTop: '16px' }}>
-              <thead>
-                <tr style={{ backgroundColor: theme.palette.action.hover }}>
-                  <th style={{ padding: '10px', textAlign: 'left', border: `1px solid ${theme.palette.divider}` }}>Parameter</th>
-                  <th style={{ padding: '10px', textAlign: 'left', border: `1px solid ${theme.palette.divider}` }}>Type</th>
-                  <th style={{ padding: '10px', textAlign: 'left', border: `1px solid ${theme.palette.divider}` }}>Description</th>
-                  <th style={{ padding: '10px', textAlign: 'left', border: `1px solid ${theme.palette.divider}` }}>Example</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr>
-                  <td style={{ padding: '10px', border: `1px solid ${theme.palette.divider}` }}><code>store_id</code></td>
-                  <td style={{ padding: '10px', border: `1px solid ${theme.palette.divider}` }}>integer</td>
-                  <td style={{ padding: '10px', border: `1px solid ${theme.palette.divider}` }}>Unique identifier for the store</td>
-                  <td style={{ padding: '10px', border: `1px solid ${theme.palette.divider}` }}>1</td>
-                </tr>
-                <tr>
-                  <td style={{ padding: '10px', border: `1px solid ${theme.palette.divider}` }}><code>dept_id</code></td>
-                  <td style={{ padding: '10px', border: `1px solid ${theme.palette.divider}` }}>integer</td>
-                  <td style={{ padding: '10px', border: `1px solid ${theme.palette.divider}` }}>Department identifier</td>
-                  <td style={{ padding: '10px', border: `1px solid ${theme.palette.divider}` }}>5</td>
-                </tr>
-                <tr>
-                  <td style={{ padding: '10px', border: `1px solid ${theme.palette.divider}` }}><code>temperature</code></td>
-                  <td style={{ padding: '10px', border: `1px solid ${theme.palette.divider}` }}>float</td>
-                  <td style={{ padding: '10px', border: `1px solid ${theme.palette.divider}` }}>Average temperature for the forecast period (in Fahrenheit)</td>
-                  <td style={{ padding: '10px', border: `1px solid ${theme.palette.divider}` }}>75.5</td>
-                </tr>
-                <tr>
-                  <td style={{ padding: '10px', border: `1px solid ${theme.palette.divider}` }}><code>fuel_price</code></td>
-                  <td style={{ padding: '10px', border: `1px solid ${theme.palette.divider}` }}>float</td>
-                  <td style={{ padding: '10px', border: `1px solid ${theme.palette.divider}` }}>Fuel price in the region (per gallon)</td>
-                  <td style={{ padding: '10px', border: `1px solid ${theme.palette.divider}` }}>3.45</td>
-                </tr>
-                <tr>
-                  <td style={{ padding: '10px', border: `1px solid ${theme.palette.divider}` }}><code>markdown1-5</code></td>
-                  <td style={{ padding: '10px', border: `1px solid ${theme.palette.divider}` }}>float</td>
-                  <td style={{ padding: '10px', border: `1px solid ${theme.palette.divider}` }}>Promotional markdown values</td>
-                  <td style={{ padding: '10px', border: `1px solid ${theme.palette.divider}` }}>10.5</td>
-                </tr>
-                <tr>
-                  <td style={{ padding: '10px', border: `1px solid ${theme.palette.divider}` }}><code>cpi</code></td>
-                  <td style={{ padding: '10px', border: `1px solid ${theme.palette.divider}` }}>float</td>
-                  <td style={{ padding: '10px', border: `1px solid ${theme.palette.divider}` }}>Consumer Price Index</td>
-                  <td style={{ padding: '10px', border: `1px solid ${theme.palette.divider}` }}>225.38</td>
-                </tr>
-                <tr>
-                  <td style={{ padding: '10px', border: `1px solid ${theme.palette.divider}` }}><code>unemployment</code></td>
-                  <td style={{ padding: '10px', border: `1px solid ${theme.palette.divider}` }}>float</td>
-                  <td style={{ padding: '10px', border: `1px solid ${theme.palette.divider}` }}>Unemployment rate</td>
-                  <td style={{ padding: '10px', border: `1px solid ${theme.palette.divider}` }}>7.5</td>
-                </tr>
-                <tr>
-                  <td style={{ padding: '10px', border: `1px solid ${theme.palette.divider}` }}><code>isHoliday</code></td>
-                  <td style={{ padding: '10px', border: `1px solid ${theme.palette.divider}` }}>boolean</td>
-                  <td style={{ padding: '10px', border: `1px solid ${theme.palette.divider}` }}>Whether the forecast period includes a holiday</td>
-                  <td style={{ padding: '10px', border: `1px solid ${theme.palette.divider}` }}>true</td>
-                </tr>
-              </tbody>
-            </table>
-          </Box>
-        );
-      case 'csv-format':
-        return (
-          <Box sx={{ p: 2 }}>
-            <Typography variant="h5" gutterBottom>Expected CSV Format</Typography>
-            <Typography variant="body1" paragraph color="text.secondary">
-              Your CSV should include the following columns:
-            </Typography>
-            
-            <Box component="ul" sx={{ pl: 2 }}>
-              {['Store', 'Temperature', 'Fuel_Price', 'CPI', 'Unemployment', 'Holiday_Flag', 'weekday', 'month', 'year'].map((col) => (
-                <Box component="li" key={col} sx={{ mb: 0.5 }}>
-                  <Typography variant="body2">
-                    <Box component="span" sx={{ color: theme => theme.palette.accent.pink, fontWeight: 600 }}>{col}</Box> - 
-                    {col === 'Store' && ' Store identifier number'}
-                    {col === 'Temperature' && ' Temperature in Fahrenheit'}
-                    {col === 'Fuel_Price' && ' Cost of fuel in the region'}
-                    {col === 'CPI' && ' Consumer Price Index'}
-                    {col === 'Unemployment' && ' Unemployment rate'}
-                    {col === 'Holiday_Flag' && ' Whether the week is a holiday week (0 or 1)'}
-                    {col === 'weekday' && ' Day of week (0-6)'}
-                    {col === 'month' && ' Month (1-12)'}
-                    {col === 'year' && ' Year (e.g., 2023)'}
-                  </Typography>
+                <Box sx={{ mt: 1, mb: 2 }}>
+                  <SyntaxHighlighter language="javascript" style={docco}>
+                    {endpoint.requestExample}
+                  </SyntaxHighlighter>
                 </Box>
-              ))}
+                
+                <Typography variant="subtitle2" sx={{ mt: 2, color: 'text.secondary', fontWeight: 600 }}>
+                  Response Example:
+                </Typography>
+                <Box sx={{ mt: 1 }}>
+                  <SyntaxHighlighter language="javascript" style={docco}>
+                    {endpoint.responseExample}
+                  </SyntaxHighlighter>
+                </Box>
+              </Box>
+            ))}
+            
+            <Divider sx={{ my: 3 }} />
+            
+            <Typography variant="h6" gutterBottom>Code Examples</Typography>
+            
+            <Typography variant="subtitle1" gutterBottom sx={{ mt: 3, fontWeight: 600 }}>
+              Python:
+            </Typography>
+            <Box sx={{ mt: 1, mb: 3 }}>
+              <SyntaxHighlighter language="python" style={docco}>
+                {pythonExample}
+              </SyntaxHighlighter>
             </Box>
-          </Box>
-        );
-      case 'faq':
-        return (
-          <Box sx={{ p: 2 }}>
-            <Typography variant="h5" gutterBottom>FAQs</Typography>
-            <Typography variant="body1" paragraph>
-              Here are some frequently asked questions about our system and its capabilities:
-            </Typography>
             
-            <Typography variant="h6" gutterBottom sx={{ mt: 3 }}>How accurate is the prediction?</Typography>
-            <Typography variant="body1" paragraph>
-              The accuracy of our predictions can vary depending on the complexity of the data and the specific model used.
-              Generally, our models have a high level of accuracy, but it's important to validate predictions with actual data.
+            <Typography variant="subtitle1" gutterBottom sx={{ mt: 3, fontWeight: 600 }}>
+              JavaScript:
             </Typography>
-            
-            <Typography variant="h6" gutterBottom sx={{ mt: 3 }}>Can I customize the model?</Typography>
-            <Typography variant="body1" paragraph>
-              Yes, you can customize the model by training it on your own data or by selecting a different model from our available options.
-            </Typography>
-            
-            <Typography variant="h6" gutterBottom sx={{ mt: 3 }}>How long does it take to get results?</Typography>
-            <Typography variant="body1" paragraph>
-              The time it takes to get results depends on the size of the dataset and the complexity of the model.
-              For batch predictions, it can take a few minutes to process a large dataset.
-            </Typography>
-          </Box>
+            <Box sx={{ mt: 1 }}>
+              <SyntaxHighlighter language="javascript" style={docco}>
+                {jsExample}
+              </SyntaxHighlighter>
+            </Box>
+          </>
         );
       default:
         return null;
@@ -447,65 +887,112 @@ fetch(apiUrl, {
               >
                 Back to Sections
               </ModernButton>
-              <Typography variant="h5" fontWeight={600}>
+              <Typography variant="h5" sx={{ fontWeight: 700 }}>
                 {sections.find(s => s.id === selectedSection)?.title}
               </Typography>
             </Box>
-            <Divider sx={{ my: 2 }} />
+            <Divider sx={{ mb: 3 }} />
+            
             {getSectionContent(selectedSection)}
           </ModernCard>
         </>
       ) : (
         <>
-          <Paper elevation={1} sx={{ mb: 4, borderRadius: 2 }}>
-            <Tabs
-              value={tabValue}
-              onChange={handleTabChange}
-              variant="scrollable"
-              scrollButtons="auto"
-              aria-label="documentation tabs"
-              sx={{ borderBottom: 1, borderColor: 'divider' }}
-            >
-              <Tab icon={<DataObjectIcon />} label="Overview" />
-              <Tab icon={<CodeIcon />} label="API Reference" />
-              <Tab icon={<TableChartIcon />} label="Input Data" />
-              <Tab icon={<IntegrationInstructionsIcon />} label="Integration" />
-            </Tabs>
+          <ModernCard glowColor="blue" sx={{ mb: 4 }}>
+            <TextField 
+              fullWidth
+              placeholder="Search documentation..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              InputProps={{
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <SearchIcon color="primary" />
+                  </InputAdornment>
+                ),
+              }}
+              sx={{ mb: 2 }}
+            />
             
-            <TabPanel value={tabValue} index={0}>
-              <Box sx={{ p: 2 }}>
-                <Typography variant="h5" gutterBottom>System Overview</Typography>
-                {getSectionContent('getting-started')}
-              </Box>
-            </TabPanel>
-            
-            <TabPanel value={tabValue} index={1}>
-              <Box sx={{ p: 2 }}>
-                <Typography variant="h5" gutterBottom>API Reference</Typography>
-                {getSectionContent('api-reference')}
-              </Box>
-            </TabPanel>
-            
-            <TabPanel value={tabValue} index={2}>
-              <Box sx={{ p: 2 }}>
-                <Typography variant="h5" gutterBottom>Input Data Reference</Typography>
-                {getSectionContent('model-details')}
-              </Box>
-            </TabPanel>
-            
-            <TabPanel value={tabValue} index={3}>
-              <Box sx={{ p: 2 }}>
-                <Typography variant="h5" gutterBottom>Expected CSV Format</Typography>
-                {getSectionContent('csv-format')}
-              </Box>
-            </TabPanel>
-          </Paper>
+            <Paper sx={{ mb: 3 }}>
+              <Tabs 
+                value={tabValue}
+                onChange={handleTabChange}
+                variant="fullWidth"
+                indicatorColor="primary"
+                textColor="primary"
+              >
+                <Tab label="Overview" icon={<DescriptionIcon />} iconPosition="start" />
+                <Tab label="API" icon={<ApiIcon />} iconPosition="start" />
+                <Tab label="Samples" icon={<CodeIcon />} iconPosition="start" />
+                <Tab label="FAQ" icon={<HelpOutlineIcon />} iconPosition="start" />
+              </Tabs>
+              
+              <TabPanel value={tabValue} index={0}>
+                <Typography variant="body1" paragraph>
+                  Welcome to the Predixio documentation. Here you will find comprehensive guides and documentation to help you
+                  understand and use our platform effectively. Our documentation is organized into several key sections.
+                </Typography>
+                
+                <Typography variant="body1" paragraph>
+                  For newcomers, we recommend starting with the Introduction section, followed by the Dataset section to understand
+                  the data format our system expects. When you're ready to begin using the platform, the Using the Platform section
+                  provides a step-by-step guide to get you started.
+                </Typography>
+              </TabPanel>
+              
+              <TabPanel value={tabValue} index={1}>
+                <Typography variant="body1" paragraph>
+                  Our API allows you to integrate our prediction capabilities with your existing systems. The API Reference section
+                  provides detailed information about each endpoint, including request and response formats, as well as code examples.
+                </Typography>
+                
+                <Typography variant="body1" paragraph>
+                  For technical questions about our API, please contact our support team or refer to the FAQ section for common questions.
+                </Typography>
+              </TabPanel>
+              
+              <TabPanel value={tabValue} index={2}>
+                <Typography variant="body1" paragraph>
+                  We provide sample code snippets for various programming languages to help you integrate with our API.
+                  These samples demonstrate how to prepare data, make requests, and handle responses.
+                </Typography>
+                
+                <Typography variant="h6" gutterBottom sx={{ mt: 2 }}>Python Example:</Typography>
+                <Box sx={{ mb: 3 }}>
+                  <SyntaxHighlighter language="python" style={docco}>
+                    {pythonExample}
+                  </SyntaxHighlighter>
+                </Box>
+              </TabPanel>
+              
+              <TabPanel value={tabValue} index={3}>
+                <Typography variant="h6" gutterBottom>Frequently Asked Questions</Typography>
+                
+                <Typography variant="h6" gutterBottom sx={{ mt: 3 }}>What file formats are supported?</Typography>
+                <Typography variant="body1" paragraph>
+                  Currently, we support CSV files with the required columns for analysis. Please refer to the Dataset section for details on the expected format.
+                </Typography>
+                
+                <Typography variant="h6" gutterBottom sx={{ mt: 3 }}>How accurate are the predictions?</Typography>
+                <Typography variant="body1" paragraph>
+                  Our XGBoost model typically achieves RMSE (Root Mean Square Error) values of approximately 950 on test data, which represents high accuracy for retail sales forecasting.
+                </Typography>
+                
+                <Typography variant="h6" gutterBottom sx={{ mt: 3 }}>How long does it take to get results?</Typography>
+                <Typography variant="body1" paragraph>
+                  The time it takes to get results depends on the size of the dataset and the complexity of the model.
+                  For batch predictions, it can take a few minutes to process a large dataset.
+                </Typography>
+              </TabPanel>
+            </Paper>
+          </ModernCard>
           
           <Grid container spacing={3}>
             {sections.map((section) => (
               <Grid item xs={12} md={6} key={section.id}>
                 <ModernCard 
-                  glowColor={section.id === 'getting-started' ? 'blue' : section.id === 'api-reference' ? 'pink' : section.id === 'model-details' ? 'green' : section.id === 'csv-format' ? 'purple' : 'pink'}
+                  glowColor={section.id === 'introduction' ? 'blue' : section.id === 'api-reference' ? 'pink' : section.id === 'model-architecture' ? 'green' : section.id === 'dataset' ? 'purple' : section.id === 'preprocessing' ? 'orange' : 'teal'}
                   sx={{ 
                     p: 0, 
                     overflow: 'hidden',
@@ -515,13 +1002,14 @@ fetch(apiUrl, {
                   }}
                 >
                   <Box 
-                    sx={{ 
+                    sx={{                      
                       height: 180, 
                       width: '100%', 
-                      backgroundImage: `url(/images/${section.id === 'getting-started' ? 'img5.png' : 
+                      backgroundImage: `url(/images/${section.id === 'introduction' ? 'img5.png' : 
                                                   section.id === 'api-reference' ? 'img2.png' : 
-                                                  section.id === 'model-details' ? 'img3.png' : 
-                                                  section.id === 'csv-format' ? 'img4.png' : 'img1.png'})`,
+                                                  section.id === 'model-architecture' ? 'img3.png' : 
+                                                  section.id === 'dataset' ? 'img4.png' : 
+                                                  section.id === 'preprocessing' ? 'img1.png' : 'img5.png'})`,
                       backgroundSize: 'cover',
                       backgroundPosition: 'center'
                     }}
@@ -530,22 +1018,27 @@ fetch(apiUrl, {
                     <Typography variant="h6" gutterBottom fontWeight={700} sx={{ mb: 1 }}>
                       {section.title}
                     </Typography>
-                    
-                    <Typography variant="body2" color="text.secondary" paragraph sx={{ mb: 2, flexGrow: 1 }}>
-                      {section.id === 'getting-started' && "Learn how to get started with our Sales Forecasting system."}
+                      <Typography variant="body2" color="text.secondary" paragraph sx={{ mb: 2, flexGrow: 1 }}>
+                      {section.id === 'introduction' && "Learn about the Predixio platform and its sales forecasting capabilities."}
+                      {section.id === 'dataset' && "Understand the Walmart sales dataset powering our forecasting system."}
+                      {section.id === 'preprocessing' && "Explore our data preprocessing pipeline for sales data."}
+                      {section.id === 'model-architecture' && "Learn about our AI model architecture and prediction capabilities."}
+                      {section.id === 'usage' && "Find out how to use our platform for sales analysis and predictions."}
                       {section.id === 'api-reference' && "Explore our API endpoints for integration with your applications."}
-                      {section.id === 'model-details' && "Understand the input data requirements for accurate predictions."}
-                      {section.id === 'csv-format' && "Format your CSV files correctly for batch processing."}
-                      {section.id === 'faq' && "Find answers to commonly asked questions about our system."}
                     </Typography>
                     
-                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', pt: 1, borderTop: '1px solid rgba(255,255,255,0.05)' }}>
+                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', pt: 1, borderTop: '1px solid rgba(255,255,255,0.05)' }}>                      
                       <ModernButton 
-                        color={section.id === 'getting-started' ? 'blue' : section.id === 'api-reference' ? 'pink' : section.id === 'model-details' ? 'green' : section.id === 'csv-format' ? 'purple' : 'pink'} 
+                        color={section.id === 'introduction' ? 'blue' : section.id === 'api-reference' ? 'pink' : section.id === 'model-architecture' ? 'green' : section.id === 'dataset' ? 'purple' : section.id === 'preprocessing' ? 'orange' : 'teal'} 
                         variant="outlined"
                         onClick={() => setSelectedSection(section.id)}
                       >
-                        {section.id === 'getting-started' ? 'Get Started' : section.id === 'api-reference' ? 'View API Reference' : section.id === 'model-details' ? 'View Input Data' : section.id === 'csv-format' ? 'View CSV Format' : 'View FAQs'}
+                        {section.id === 'introduction' ? 'Introduction' : 
+                          section.id === 'dataset' ? 'Dataset Details' : 
+                          section.id === 'preprocessing' ? 'Data Processing' : 
+                          section.id === 'model-architecture' ? 'Model Architecture' : 
+                          section.id === 'usage' ? 'Platform Usage' : 
+                          'API Reference'}
                       </ModernButton>
                     </Box>
                   </Box>
@@ -559,4 +1052,4 @@ fetch(apiUrl, {
   );
 };
 
-export default DocumentationPage; 
+export default DocumentationPage;
