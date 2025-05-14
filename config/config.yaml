@@ -1,4 +1,4 @@
-# Example configuration file for the project
+# configuration file for the project
 model:
   type: xgboost
   path: src/models/xgboost_model.pkl

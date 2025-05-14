@@ -1,21 +1,18 @@
-from fastapi import FastAPI, HTTPException, UploadFile, File, Query, Path, Form
+from fastapi import FastAPI, HTTPException, UploadFile, File, Query, Form
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
 import pandas as pd
 import io
 import os
 import sys
 import joblib # Added for loading scikit-learn models
-import traceback # Added for detailed error logging
 import numpy as np
 from typing import Optional
-from sklearn.preprocessing import StandardScaler
 
 # Fix import paths when running from src directory
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from features.preprocess import preprocess_sales_data, scale_features
-# train.py contains load_model, predict. We might need to adjust load_model if it's too generic.
+# train.py contains load_model, predict
 from models.train import load_model as load_specific_model, predict 
 from api.schemas import PredictRequest, PredictResponse, ModelResponse, HealthResponse, VisualizeResponse, DataStats, VisualizationData, StorePerformance, TimeTrend, DepartmentSales # VisualizeResponse and others might be removed if not used by these simplified endpoints
 from utils.config import load_config
@@ -50,7 +47,7 @@ loaded_scaler = None
 def load_trained_models():
     global available_models, loaded_scaler
     logger.info("Attempting to load trained models and scaler...")
-    model_paths = {"linear": LINEAR_MODEL_PATH, "xgboost": XGBOOST_MODEL_PATH}    # Try to load the saved scaler
+    model_paths = {"linear": LINEAR_MODEL_PATH, "xgboost": XGBOOST_MODEL_PATH}
     try:
         if os.path.exists(SCALER_PATH):
             loaded_scaler = joblib.load(SCALER_PATH)
@@ -569,5 +566,3 @@ async def visualize_data(file: UploadFile = File(...)):
                 logger.debug(f"File {file.filename} closed.")
             except Exception as e_close:
                 logger.error(f"Error closing file {file.filename}: {e_close}", exc_info=True)
-
-# ... rest of the file

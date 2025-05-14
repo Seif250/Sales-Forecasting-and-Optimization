@@ -1,7 +1,6 @@
 import pandas as pd
 import numpy as np
 from pathlib import Path
-from sklearn.preprocessing import StandardScaler
 from sklearn.model_selection import train_test_split
 from src.data.load_data import load_raw_data
 from src.features.preprocess import preprocess_sales_data, scale_features
@@ -48,7 +47,7 @@ if __name__ == "__main__":
     train_xgboost(X_train_scaled, y_train, str(models_dir / 'xgboost_model.pkl'), feature_names=feature_names)
     logger.info("Models trained and saved.")
 
-    # Automated evaluation (train/test RMSE, R2)
+    # Automated evaluation (train/test RMSE)
     for model_name_pkl in ['linear_regression_model.pkl', 'xgboost_model.pkl']:
         model_path = models_dir / model_name_pkl
         if not model_path.exists():
