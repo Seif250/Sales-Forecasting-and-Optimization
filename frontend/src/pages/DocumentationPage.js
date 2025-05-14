@@ -183,7 +183,7 @@ fetch(apiUrl, {
         return (
           <>
             <Typography variant="h5" fontWeight={600} gutterBottom>
-              Getting Started with Predixio
+              Getting Started with Predix
             </Typography>
             <Typography variant="body1" paragraph>
               The Sales Forecasting and Optimization system uses advanced machine learning algorithms to predict future sales 

@@ -78,7 +78,7 @@ const Header = ({ darkMode, toggleDarkMode }) => {
         <Box sx={{ display: 'flex', alignItems: 'center', flexGrow: { xs: 1, md: 0 } }}>
           <img 
             src={`${process.env.PUBLIC_URL}/images/logo.png`}
-            alt="Predixio Logo" 
+            alt="Predix Logo" 
             style={{ 
               height: '40px', 
               marginRight: '12px',
@@ -103,7 +103,7 @@ const Header = ({ darkMode, toggleDarkMode }) => {
               textShadow: '0 0 20px rgba(77, 105, 250, 0.5)'
             }}
           >
-            Predixio
+            Predix
           </Typography>
         </Box>
         

@@ -177,7 +177,7 @@ const HomePage = () => {
             textShadow: '0 2px 10px rgba(77, 105, 250, 0.3)'
           }}
         >
-          Predixio
+          Predix
         </Typography>
 
         <Typography 

@@ -54,7 +54,7 @@ const Dashboard = () => {
       {/* عنوان الصفحة */}
       <PageHeader 
         title="Dashboard" 
-        subtitle="Welcome to the Predixio forecasting platform. This dashboard allows you to analyze sales data and view historical sales patterns."
+        subtitle="Welcome to the Predix forecasting platform. This dashboard allows you to analyze sales data and view historical sales patterns."
         icon={<DashboardIcon />}
       />
 
