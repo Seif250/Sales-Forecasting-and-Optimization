@@ -2,10 +2,8 @@ import pandas as pd
 from sklearn.linear_model import LinearRegression
 from xgboost import XGBRegressor
 import joblib
-from pathlib import Path
 import numpy as np
 import logging
-import copy
 
 logger = logging.getLogger(__name__)
 
@@ -31,19 +29,7 @@ def load_model(model_path: str):
     return joblib.load(model_path)
 
 def predict(model_data: dict, X) -> np.ndarray:
-    """
-    Make predictions using the model and preprocessed data.
-    Accepts either a pandas DataFrame or a numpy array of features.
-    If X is a DataFrame, aligns columns based on feature_names stored in model_data if available.
-    If X is a numpy array, assumes it's already properly aligned with model features.
-    
-    Args:
-        model_data: Dictionary containing 'model' and optionally 'feature_names'
-        X: Features as either pandas DataFrame or numpy array
-        
-    Returns:
-        numpy array of predictions
-    """
+    """Make predictions using the model and preprocessed data."""
     model = model_data.get('model')
     if model is None:
         logger.error("Model object not found in model_data.")
@@ -109,43 +95,3 @@ def predict(model_data: dict, X) -> np.ndarray:
         logger.error(f"Details of X_aligned fed to model.predict - Shape: {X_aligned.shape}, Dtypes:\n{X_aligned.dtypes}, Head:\n{X_aligned.head()}")
         raise  # Re-raise the exception to be caught by the API layer
 
-def post_process_predictions(predictions):
-    """
-    Post-process predictions to ensure realistic values for weekly sales.
-    
-    Args:
-        predictions: raw model predictions
-        
-    Returns:
-        Processed predictions in a realistic range
-    """
-    # Check if predictions are unrealistically large
-    if np.mean(np.abs(predictions)) > 1e6:
-        logger.warning(f"Predictions appear to be scaled incorrectly: mean={np.mean(predictions):.2f}")
-        
-        # For extreme values (>1e9), apply radical scaling
-        if np.mean(np.abs(predictions)) > 1e9:
-            logger.warning("Extreme prediction values detected, applying strong normalization")
-            
-            # Scale down to a realistic range for weekly retail sales ($10k-$500k)
-            scaled_predictions = np.clip(predictions / 1e12, 10000, 500000)
-            logger.info(f"Scaled predictions: min={np.min(scaled_predictions):.2f}, max={np.max(scaled_predictions):.2f}")
-            return scaled_predictions
-        
-        # For large but not extreme values, apply moderate scaling
-        scaled_predictions = np.clip(predictions / 1e3, 5000, 200000)
-        logger.info(f"Scaled predictions: min={np.min(scaled_predictions):.2f}, max={np.max(scaled_predictions):.2f}")
-        return scaled_predictions
-    
-    # If predictions are negative, shift them to be positive
-    if np.any(predictions < 0):
-        logger.warning(f"Negative predictions detected: min={np.min(predictions):.2f}")
-        predictions = predictions - np.min(predictions) + 1000  # Ensure minimum is $1000
-    
-    # Ensure predictions are in a reasonable range for weekly sales
-    # Most retail stores have weekly sales in the range of $10k-$500k
-    if np.max(predictions) < 1000:  # If predictions are too small
-        logger.warning(f"Predictions too small, scaling up: max={np.max(predictions):.2f}")
-        predictions = predictions * 10000
-    
-    return predictions

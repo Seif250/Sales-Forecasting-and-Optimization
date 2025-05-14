@@ -41,18 +41,12 @@ def preprocess_sales_data(df: pd.DataFrame) -> pd.DataFrame:
                 df['Date'] = pd.to_datetime(df['Date'], format='%d-%m-%Y', errors='raise')
                 logger.info("Parsed 'Date' column with format '%d-%m-%Y' for preprocessing.")
             except ValueError:
-                logger.warning("Failed to parse 'Date' with format '%d-%m-%Y' for preprocessing, trying to infer format.")
-                df['Date'] = pd.to_datetime(original_dates, infer_datetime_format=True, errors='coerce')
+                logger.warning("Failed to parse 'Date' with format '%d-%m-%Y' for preprocessing")
             
-            # Fallback if a large portion became NaT with infer_datetime_format
-            if df['Date'].notna().any() and (df['Date'].isna().sum() > len(df) / 2):
-                logger.warning("High number of NaNs after inferring date format for preprocessing. Trying with dayfirst=True as a fallback.")
-                df['Date'] = pd.to_datetime(original_dates, dayfirst=True, errors='coerce')
-
             if df['Date'].isna().any():
-                logger.warning("Some dates could not be parsed to datetime for preprocessing and resulted in NaT even after fallbacks. Ensure all dates are in a recognizable format. These will affect date-derived features.")
+                logger.warning("Some dates could not be parsed to datetime for preprocessing")
             
-            # Extract date features. If 'Date' column became all NaT, these will be NaN.
+            # Extract date features
             df['weekday'] = df['Date'].dt.weekday
             df['month'] = df['Date'].dt.month
             df['year'] = df['Date'].dt.year
@@ -128,26 +122,13 @@ def preprocess_sales_data(df: pd.DataFrame) -> pd.DataFrame:
     return df
 
 def scale_features(df: pd.DataFrame, scaler: StandardScaler = None) -> tuple[pd.DataFrame, StandardScaler]:
-    """
-    Scale numerical features using StandardScaler.
-    If a scaler is provided, it will use transform() only.
-    If no scaler is provided, it will fit_transform() and return the fitted scaler.
-    
-    Args:
-        df: DataFrame with features to scale
-        scaler: Optional pre-fitted StandardScaler
-        
-    Returns:
-        (scaled_df, scaler): Tuple of scaled DataFrame and the scaler used
-    """
+    """Scale numerical features using StandardScaler."""
     logger.info("Scaling numerical features")
     
     # Create a copy to avoid modifying the original
     df_scaled = df.copy()
     
     # Handle the case of Weekly_Sales special - exclude it from scaling if present
-    # This is to maintain consistency with how the model was trained
-    # where Weekly_Sales was the target and not included in the feature scaling
     has_weekly_sales = 'Weekly_Sales' in df_scaled.columns
     if has_weekly_sales:
         logger.info("'Weekly_Sales' found in input data for scaling - will be preserved unscaled")

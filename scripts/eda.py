@@ -1,7 +1,6 @@
 import pandas as pd
 import plotly.express as px
 from src.data.load_data import load_raw_data
-from src.features.preprocess import preprocess_sales_data
 
 def main():
     df = load_raw_data()
