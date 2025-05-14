@@ -12,8 +12,7 @@ import PageHeader from '../components/PageHeader';
 import ModernCard from '../components/ModernCard';
 import ModernButton from '../components/ModernButton';
 
-const AboutPage = () => {
-  const technologies = [
+const AboutPage = () => {  const technologies = [
     {
       category: 'Frontend',
       icon: <CodeIcon fontSize="large" />,
@@ -31,12 +30,6 @@ const AboutPage = () => {
       icon: <BarChartIcon fontSize="large" />,
       items: ['XGBoost', 'Scikit-learn', 'Pandas', 'NumPy'],
       color: 'green'
-    },
-    {
-      category: 'DevOps',
-      icon: <BuildIcon fontSize="large" />,
-      items: ['Docker', 'GitHub Actions', 'AWS', 'Pytest'],
-      color: 'purple'
     }
   ];
 

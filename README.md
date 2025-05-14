@@ -99,4 +99,8 @@ If you have any questions or suggestions, please open an issue in this repositor
 
 ---
 
+<<<<<<< HEAD
 ✨ Developed by Data Wiz Team © 2025 ✨
+=======
+✨ Developed by Data Wiz Team © 2025 ✨
+>>>>>>> 7cb7e70b0c5b995180471b81b3e9b94dc01a7201
